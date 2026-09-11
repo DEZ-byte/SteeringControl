@@ -76,21 +76,32 @@ setting at all, so there is nothing to do there.
 setting does nothing either way, but leaving it on means Forza spends effort
 computing effects for a device that cannot play them.
 
-## Lock to lock
+## Choosing how far to turn the phone
 
-Set it in the OpenSteer app.
+Set this in the OpenSteer app, not in the game.
 
-Forza Horizon is an arcade game with a lot of built-in steering assistance that
-cannot be turned off, and it expects small, quick inputs. Use less rotation here
-than you would in Assetto Corsa.
+**This is not the car's steering lock.** It is how far you rotate the phone to
+command full lock, and the two numbers have nothing to do with each other. A real
+900 degree wheel turns two and a half times. Your hands manage about 90 degrees
+each way before your arms cross over.
 
-| Class | Try |
-|---|---|
-| Everything, to start | 360 |
-| Rally and drift | 540 |
+That is why the old advice to start at 900 was wrong, and why the car would barely
+turn. At 900, a 90 degree wrist turn asks for a fifth of the car's lock and there
+is no way to ask for more.
 
-Start at 360. If the car feels twitchy, go to 540. Going past that fights the
-game's own assistance rather than working with it.
+| Phone rotation | You turn | Feels |
+|---|---|---|
+| 120° | 60° each way | quick, twitchy at speed |
+| 150° | 75° each way | quick |
+| **180°** | **90° each way** | **the default, start here** |
+| 240° | 120° each way | calm, needs a stretch for full lock |
+| 360° | 180° each way | needs a regrip; for drifting |
+
+Start at 180. If the car darts, go up. If you cannot reach full lock in a hairpin,
+go down.
+
+Forza has a lot of built-in steering assistance and expects small, quick
+inputs, so 150 often suits it better than 180.
 
 ## Assists
 

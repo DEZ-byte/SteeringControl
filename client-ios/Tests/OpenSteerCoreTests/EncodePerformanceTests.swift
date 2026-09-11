@@ -28,7 +28,7 @@ final class EncodePerformanceTests: XCTestCase {
     func testFullPipelineThroughput() {
         var extractor = TwistExtractor()
         var unwrapper = AngleUnwrapper()
-        let mapper = SteerMapper(dor: .dor900)
+        let mapper = SteerMapper(dor: .dor360)
         var slot = [UInt8](repeating: 0, count: UplinkCodec.size)
         var state = UplinkState()
 

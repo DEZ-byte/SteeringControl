@@ -40,7 +40,7 @@ final class AppSettings: ObservableObject {
         defaults.register(defaults: [
             "host": "192.168.1.10",
             "port": 9999,
-            "dor": DegreesOfRotation.dor900.rawValue,
+            "dor": DegreesOfRotation.dor180.rawValue,
             "deadband": SteerMapper.defaultDeadband,
             "gamma": SteerMapper.defaultGamma,
             "pedalTravel": PedalMapper.defaultTravel,
@@ -60,12 +60,27 @@ final class AppSettings: ObservableObject {
         tcTicksEnabled = defaults.bool(forKey: "tcTicks")
         rumbleEnabled = defaults.bool(forKey: "rumble")
         showDebugHud = defaults.bool(forKey: "showDebugHud")
+
+        // An install from before the rotation options were resized still has 540
+        // or 900 on disk. Those were wheel numbers on a device that cannot turn
+        // that far, and a phone left on one can only ever reach a fifth of the
+        // car's lock. Migrate rather than fall back: a fallback would fix the
+        // picker and leave the old number driving the wheel.
+        if DegreesOfRotation(rawValue: degreesOfRotation) == nil {
+            degreesOfRotation = DegreesOfRotation.dor180.rawValue
+            // Written by hand because property observers do not run during init.
+            defaults.set(degreesOfRotation, forKey: "dor")
+        }
     }
 
+    /// Built from `dor`, not from the raw stored integer.
+    ///
+    /// Those two can disagree: an install carrying a value the enum no longer
+    /// offers falls back for the picker but would keep the old number here, so
+    /// the wheel would behave as a setting the driver cannot see. Going through
+    /// `dor` makes that impossible.
     var mapper: SteerMapper {
-        SteerMapper(degreesOfRotation: Double(degreesOfRotation),
-                    deadband: deadband,
-                    gamma: gamma)
+        SteerMapper(dor: dor, deadband: deadband, gamma: gamma)
     }
 
     var portValue: UInt16 {
@@ -73,7 +88,7 @@ final class AppSettings: ObservableObject {
     }
 
     var dor: DegreesOfRotation {
-        get { DegreesOfRotation(rawValue: degreesOfRotation) ?? .dor900 }
+        get { DegreesOfRotation(rawValue: degreesOfRotation) ?? .dor180 }
         set { degreesOfRotation = newValue.rawValue }
     }
 

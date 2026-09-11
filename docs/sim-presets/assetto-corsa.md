@@ -129,26 +129,39 @@ preset puts several of them on exactly the keys `tools/drive_keys.py` drives wit
 The preset sets all of those to unbound. If you build your own preset instead, do
 the same or the test will be baffling.
 
-## Choosing a lock to lock
+## Choosing how far to turn the phone
 
-Set this in the OpenSteer app, not in the game. Start at 900 degrees and work down
-if the car feels slow to respond.
+Set this in the OpenSteer app, not in the game.
 
-| Cars | Try |
-|---|---|
-| Formula and open wheel | 360 |
-| GT and touring | 540 |
-| Road cars | 900 |
-| Drift | 900 |
+**This is not the car's steering lock.** It is how far you rotate the phone to
+command full lock, and the two numbers have nothing to do with each other. A real
+900 degree wheel turns two and a half times. Your hands manage about 90 degrees
+each way before your arms cross over.
 
-A larger number means more phone rotation for the same steering, which is easier
-to hold steady at speed and harder to place quickly. Smaller is the reverse.
+That is why the old advice to start at 900 was wrong, and why the car would barely
+turn. At 900, a 90 degree wrist turn asks for a fifth of the car's lock and there
+is no way to ask for more.
+
+| Phone rotation | You turn | Feels |
+|---|---|---|
+| 120° | 60° each way | quick, twitchy at speed |
+| 150° | 75° each way | quick |
+| **180°** | **90° each way** | **the default, start here** |
+| 240° | 120° each way | calm, needs a stretch for full lock |
+| 360° | 180° each way | needs a regrip; for drifting |
+
+Start at 180. If the car darts, go up. If you cannot reach full lock in a hairpin,
+go down.
 
 ## When it feels wrong
 
-**The car darts at the smallest movement.** Lock to lock is too small, or you left
-a gamma above 1.0 in the game. Check the gamepad gamma is 1.0, then raise lock to
-lock in the app.
+**The car barely turns, even at full wrist rotation.** The phone rotation setting
+is too large. It is not the car's steering lock; it is how far you turn the phone.
+Set it to 180 in the app.
+
+**The car darts at the smallest movement.** Phone rotation is too small, or you
+left a gamma above 1.0 in the game. Check the gamepad gamma is 1.0, then raise the
+rotation setting.
 
 **Steering feels vague around centre.** Two deadzones are stacked. Set the game's
 deadzone to 0 and use the app's deadband alone.

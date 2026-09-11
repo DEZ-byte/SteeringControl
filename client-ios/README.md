@@ -77,6 +77,11 @@ cd client-ios && swift test
 5. Hold the phone like a wheel and press **CENTRE**. Straight ahead is wherever the
    phone is pointing at that moment.
 
+The rotation setting is how far you turn **the phone**, not the car's steering
+lock. The default of 180 means full lock at 90 degrees each way, which is about as
+far as hands go before the arms cross. Setting it to a wheel-sized number like 900
+means a 90 degree turn can only ever ask for a fifth of the car's lock.
+
 The left quarter of the screen is the brake, the right quarter is the throttle. A
 pedal starts at zero wherever your thumb lands and applies as you slide down, so
 there is no on-screen target to miss while the phone is moving. The top corners are

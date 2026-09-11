@@ -56,14 +56,14 @@ binding, and the choice changes the feel more than anything else on this page.
 | Key | Ramps from a digital press | No |
 
 **Pick Direct.** The Gamepad filter exists because a thumbstick has about two
-centimetres of travel and needs help to be drivable. Your phone has 900 degrees of
-rotation and needs none. Worse, the Gamepad filter includes automatic countersteer
-that fights you during a slide, which is the one moment you most need the car to
-do exactly what your hands said.
+centimetres of travel and needs help to be drivable. Your phone gives you ninety
+degrees of wrist rotation each way and needs none. Worse, the Gamepad filter
+includes automatic countersteer that fights you during a slide, which is the one
+moment you most need the car to do exactly what your hands said.
 
-If Direct feels too sharp, **do not switch to Gamepad**. Raise lock to lock in the
-OpenSteer app instead. That changes the ratio without inserting a filter between
-your hands and the car.
+If Direct feels too sharp, **do not switch to Gamepad**. Increase the phone
+rotation setting in the OpenSteer app instead. That changes the ratio without
+inserting a filter between your hands and the car.
 
 The Wheel filter is a reasonable second choice, especially with the ESP32 bridge
 where BeamNG will likely default to it anyway. It does far less than the Gamepad
@@ -75,26 +75,39 @@ filter.
 |---|---|---|
 | Deadzone | **0** | The phone already trims a deadband. A second one subtracts from a range that was already trimmed, and full lock stops being reachable. |
 | Linearity | **1.0** | Linear. This is a response curve and the phone has applied one. |
-| Sensitivity | **1.0** | Leave it. Change lock to lock in the app instead, so there is one place that decides the ratio. |
+| Sensitivity | **1.0** | Leave it. Change the phone rotation setting in the app instead, so there is one place that decides the ratio. |
 | Invert | off | Unless you want to steer backwards, which some people genuinely do. |
 
 **Options, Controls, Force Feedback:** turn vibration off. The virtual pad has no
 motors, and on the bridge there is no return path at all. Haptics come from the
 phone.
 
-## Lock to lock
+## Choosing how far to turn the phone
 
-Set it in the OpenSteer app.
+Set this in the OpenSteer app, not in the game.
 
-| Vehicle | Try |
-|---|---|
-| Open wheel and formula | 360 |
-| Track and sports | 540 |
-| Road cars and trucks | 900 |
-| Anything on dirt | 900 |
+**This is not the car's steering lock.** It is how far you rotate the phone to
+command full lock, and the two numbers have nothing to do with each other. A real
+900 degree wheel turns two and a half times. Your hands manage about 90 degrees
+each way before your arms cross over.
 
-BeamNG's soft-body model makes large, slow steering inputs feel much better than
-fast ones, so err on the side of more rotation than you think you need.
+That is why the old advice to start at 900 was wrong, and why the car would barely
+turn. At 900, a 90 degree wrist turn asks for a fifth of the car's lock and there
+is no way to ask for more.
+
+| Phone rotation | You turn | Feels |
+|---|---|---|
+| 120° | 60° each way | quick, twitchy at speed |
+| 150° | 75° each way | quick |
+| **180°** | **90° each way** | **the default, start here** |
+| 240° | 120° each way | calm, needs a stretch for full lock |
+| 360° | 180° each way | needs a regrip; for drifting |
+
+Start at 180. If the car darts, go up. If you cannot reach full lock in a hairpin,
+go down.
+
+BeamNG's soft-body model rewards smooth inputs, so if you are between
+two settings take the larger one.
 
 ## Force feedback
 
@@ -109,8 +122,11 @@ pedals and buttons all keep working normally.
 **The car countersteers by itself.** The Gamepad filter is on. Switch the steering
 binding to Direct.
 
-**Steering is twitchy at speed.** Raise lock to lock in the app. Do not reach for
-the Gamepad filter, which fixes the symptom by taking the car away from you.
+**The car barely turns.** The phone rotation setting is too large. It is not the
+car's steering lock; it is how far you turn the phone. Set it to 180.
+
+**Steering is twitchy at speed.** Increase the phone rotation setting. Do not reach
+for the Gamepad filter, which fixes the symptom by taking the car away from you.
 
 **The car will not turn far enough.** Two deadzones are stacked. Set BeamNG's to 0.
 

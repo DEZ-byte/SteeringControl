@@ -1,15 +1,38 @@
 import Foundation
 
-/// How far the wheel turns lock to lock, in degrees.
+/// How far **the phone** turns, lock to lock, in degrees.
+///
+/// This is not the car's steering lock and it is not a physical wheel's rotation.
+/// It is how far you rotate the phone in your hands to command full lock, and the
+/// two numbers have nothing to do with each other.
+///
+/// Getting this backwards is the easiest mistake in the project, and the values
+/// below exist to make it hard. A real 900 degree wheel turns two and a half
+/// times. Hands holding a phone manage about 90 degrees each way before the arms
+/// cross over, so a phone set to 900 can only ever ask for 90/450, which is a
+/// fifth of the car's lock, no matter how hard the driver tries. The symptom is a
+/// car that will barely turn.
+///
+/// So the useful range is roughly twice whatever the wrists can comfortably
+/// reach, and every option here is in that range.
 public enum DegreesOfRotation: Int, Sendable, CaseIterable, Identifiable {
+    /// Quick hands. Full lock at 60 degrees of phone rotation each way.
+    case dor120 = 120
+    case dor150 = 150
+    /// The default. Full lock at 90 degrees each way, which is about as far as
+    /// most people can turn without regripping.
     case dor180 = 180
+    case dor240 = 240
+    /// Needs a regrip to reach full lock, so it suits drifting and anything where
+    /// the wheel is wound on slowly and held.
     case dor360 = 360
-    case dor540 = 540
-    case dor900 = 900
 
     public var id: Int { rawValue }
     public var degrees: Double { Double(rawValue) }
     public var label: String { "\(rawValue)°" }
+
+    /// How far the phone must rotate from centre to reach full lock.
+    public var wristReachDegrees: Double { Double(rawValue) / 2.0 }
 }
 
 /// Turns a continuous steering angle into the wire axis value.

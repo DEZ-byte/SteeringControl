@@ -11,7 +11,7 @@ import OpenSteerCore
 /// rotation value.
 struct WheelView: UIViewRepresentable {
     let store: SnapshotStore
-    /// Lock to lock. The marker turns red once the wheel is on the stops.
+    /// Phone rotation, lock to lock. The marker turns red once on the stops.
     let degreesOfRotation: Double
 
     func makeUIView(context: Context) -> WheelLayerView {

@@ -42,7 +42,11 @@ struct ConnectView: View {
                 }
 
                 Section {
-                    Picker("Lock to lock", selection: $settings.dor) {
+                    // "Phone rotation", not "lock to lock". The old label borrowed
+                    // a term from physical wheels, and a driver who reads it that
+                    // way picks 900, reaches a fifth of the car's lock and
+                    // concludes the steering is broken.
+                    Picker("Phone rotation", selection: $settings.dor) {
                         ForEach(DegreesOfRotation.allCases) { dor in
                             Text(dor.label).tag(dor)
                         }
@@ -55,9 +59,11 @@ struct ConnectView: View {
                 } header: {
                     Text("Wheel")
                 } footer: {
-                    Text("Larger lock to lock means more phone rotation for the same "
-                       + "steering, which is easier to hold steady at speed. Response "
-                       + "above 1.0 softens the centre and keeps full lock reachable.")
+                    Text("How far you turn the phone to reach full lock, not the "
+                       + "car's steering lock. 180° means 90° each way, which is "
+                       + "about as far as hands go. Larger is calmer and harder to "
+                       + "reach; smaller is quicker and twitchier. Response above "
+                       + "1.0 softens the centre and keeps full lock reachable.")
                 }
 
                 Section {

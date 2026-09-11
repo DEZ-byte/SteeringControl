@@ -24,7 +24,12 @@ it feels twitchy, which is the exact complaint people have about phone steering 
 the first place.
 
 Set the shaping in the OpenSteer app instead. It is under the settings button:
-lock to lock, deadband, response.
+phone rotation, deadband, response.
+
+**The rotation setting is how far you turn the phone, not the car's steering
+lock.** The default of 180 means full lock at ninety degrees each way. A
+wheel-sized number like 900 means a ninety degree turn can only ever ask for a
+fifth of the car's lock, and the car will barely respond.
 
 ## What the PC sees
 
@@ -58,7 +63,8 @@ setup, each page says so.
 These are starting points written from the games' documented settings, not
 measured results. None has been driven with a real phone yet, because the iOS app
 needs a Mac to build and the force-feedback road test needs Assetto Corsa installed.
-Treat the numbers as a sane first setup and expect to adjust lock to lock to taste.
+Treat the numbers as a sane first setup and expect to adjust the phone rotation
+setting to taste.
 
 Where a page gives an exact configuration file key, it also gives the menu path
 for the same setting. Use the menu if the two ever disagree: game updates rename

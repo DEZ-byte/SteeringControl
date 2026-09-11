@@ -47,7 +47,7 @@ final class SteerMapperTests: XCTestCase {
     /// Positive steer is clockwise as the driver sees it, which is a negative
     /// right-hand rotation about the screen normal.
     func testSignConvention() {
-        let mapper = SteerMapper(dor: .dor900, deadband: 0, gamma: 1)
+        let mapper = SteerMapper(dor: .dor360, deadband: 0, gamma: 1)
         XCTAssertLessThan(mapper.steer(continuousDegrees: 90), 0,
                           "turning anticlockwise must steer left")
         XCTAssertGreaterThan(mapper.steer(continuousDegrees: -90), 0,
@@ -90,7 +90,7 @@ final class SteerMapperTests: XCTestCase {
     /// More travel for the same angle is the whole point of a larger DOR.
     func testLargerDorIsLessSensitive() {
         let tight = SteerMapper(dor: .dor180, deadband: 0, gamma: 1)
-        let loose = SteerMapper(dor: .dor900, deadband: 0, gamma: 1)
+        let loose = SteerMapper(dor: .dor360, deadband: 0, gamma: 1)
         XCTAssertGreaterThan(abs(Int(tight.steer(continuousDegrees: 30))),
                              abs(Int(loose.steer(continuousDegrees: 30))))
     }
