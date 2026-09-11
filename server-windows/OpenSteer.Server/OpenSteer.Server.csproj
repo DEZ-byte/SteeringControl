@@ -2,7 +2,12 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <!-- net8.0-windows, not net8.0: this daemon calls ntdll, ViGEmBus and named
+         shared memory. Declaring the platform once here is the honest way to say
+         so, and it lets the analyzer verify every call site instead of needing a
+         SupportedOSPlatform attribute sprinkled on each type that touches Win32.
+         OpenSteer.Core stays plain net8.0 and portable. -->
+    <TargetFramework>net8.0-windows</TargetFramework>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
 
     <!-- Deployment: self-contained single-file ReadyToRun.

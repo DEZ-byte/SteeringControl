@@ -9,6 +9,7 @@ using OpenSteer.Server.Diagnostics;
 using OpenSteer.Server.Interop;
 using OpenSteer.Server.Net;
 using OpenSteer.Server.Output;
+using OpenSteer.Server.Telemetry;
 
 namespace OpenSteer.Server;
 
@@ -64,6 +65,21 @@ internal static class Program
                                   config.TakeoverImmediate, config.TraceInject);
         var stats = new StatsPrinter(loop, counters, lease, log, config.StatsJson);
 
+        var reader = new AcSharedMemoryReader(config.SlipFull);
+        using var downlink = new DownlinkSender(socket, lease, reader, counters, config.EchoRtt);
+        stats.Downlink = downlink;
+        loop.Downlink = downlink;
+
+        if (config.EchoRtt)
+        {
+            // The hot thread takes over sending so a round-trip measurement is not
+            // padded by however long a frame would wait for the next 60 Hz slot.
+            loop.EchoSender = downlink;
+        }
+
+        Console.Out.WriteLine($"telemetry: {AcSharedMemoryReader.MapName} slip_full={config.SlipFull}"
+                            + (config.EchoRtt ? " echo_rtt=on" : string.Empty));
+
         using var cancellation = new CancellationTokenSource();
         using var stopped = new ManualResetEventSlim(false);
 
@@ -89,10 +105,19 @@ internal static class Program
             Priority = ThreadPriority.Lowest,
         };
 
+        var telemetryThread = new Thread(() => downlink.Run(cancellation.Token))
+        {
+            Name = "telemetry-60hz",
+            IsBackground = true,
+            Priority = ThreadPriority.Normal,
+        };
+
         hotThread.Start();
+        telemetryThread.Start();
         statsThread.Start();
 
         hotThread.Join();
+        telemetryThread.Join(2000);
         stopped.Set();
         statsThread.Join(2000);
 

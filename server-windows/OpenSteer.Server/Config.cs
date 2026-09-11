@@ -30,6 +30,12 @@ public sealed class HostConfig
 
     public bool TakeoverImmediate { get; private set; }
 
+    public bool EchoRtt { get; private set; }
+
+    /// <summary>Wheel-slip value treated as 100%. AC reports raw scrub, so the
+    /// normalisation point is a tuning knob rather than a constant.</summary>
+    public float SlipFull { get; private set; } = 1.0f;
+
     public static bool TryParse(string[] args, out HostConfig config, out string error)
     {
         config = new HostConfig();
@@ -89,6 +95,22 @@ public sealed class HostConfig
                     config.TraceInject = trace;
                     break;
 
+                case "--echo-rtt":
+                    config.EchoRtt = true;
+                    break;
+
+                case "--slip-full":
+                    if (!float.TryParse(Next(), System.Globalization.NumberStyles.Float,
+                                        System.Globalization.CultureInfo.InvariantCulture,
+                                        out float slip) || slip <= 0f)
+                    {
+                        error = "--slip-full needs a positive number";
+                        return false;
+                    }
+
+                    config.SlipFull = slip;
+                    break;
+
                 case "--clutch-axis":
                     config.ClutchAxis = true;
                     break;
@@ -121,6 +143,8 @@ public sealed class HostConfig
                                  none = headless, no driver needed
           --stats-json 0|1       emit one JSON status line per second
           --trace-inject <n>     log every nth injected frame
+          --slip-full <f>        wheel slip treated as 100% (default 1.0)
+          --echo-rtt             echo the phone's timestamp for round-trip timing
           --clutch-axis          map clutch to the right stick in mode a
           --takeover immediate   let any sender seize the lease (test harness only)
         """;

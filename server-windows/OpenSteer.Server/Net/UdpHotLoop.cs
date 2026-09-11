@@ -7,6 +7,7 @@ using OpenSteer.Core;
 using OpenSteer.Core.Protocol;
 using OpenSteer.Server.Diagnostics;
 using OpenSteer.Server.Output;
+using OpenSteer.Server.Telemetry;
 
 namespace OpenSteer.Server.Net;
 
@@ -62,6 +63,14 @@ public sealed class UdpHotLoop
         _takeoverImmediate = takeoverImmediate;
         _traceInject = traceInject;
     }
+
+    /// <summary>Set only in --echo-rtt mode. Assigned after construction because
+    /// the sender needs the same socket this loop owns.</summary>
+    public DownlinkSender? EchoSender { get; set; }
+
+    /// <summary>Always set. Used to wake the telemetry thread the instant a phone
+    /// takes the lease, so force feedback resumes with the first frame.</summary>
+    public DownlinkSender? Downlink { get; set; }
 
     public LatencyHistogram InterArrival => _interArrival;
 
@@ -155,6 +164,7 @@ public sealed class UdpHotLoop
                 if (leaseDirty)
                 {
                     _lease.Publish(_from, now);
+                    Downlink?.OnLeaseAcquired();
                 }
                 else
                 {
@@ -163,6 +173,7 @@ public sealed class UdpHotLoop
 
                 RecordArrival(now, newest.TimestampNs);
                 _watchdog.OnPacket(now, in newest);
+                EchoSender?.SendEcho(now, newest.TimestampNs);
             }
 
             // Runs every pass, packet or not: this is what makes the fail-safe fire

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using OpenSteer.Core;
 using OpenSteer.Server.Net;
+using OpenSteer.Server.Telemetry;
 
 namespace OpenSteer.Server.Diagnostics;
 
@@ -16,6 +17,7 @@ public sealed class StatsPrinter
     private readonly LeaseSlot _lease;
     private readonly LogRing _log;
     private readonly bool _json;
+    private DownlinkSender? _downlink;
 
     private readonly long[] _iaNow = new long[LatencyHistogram.BucketCount];
     private readonly long[] _iaPrev = new long[LatencyHistogram.BucketCount];
@@ -41,6 +43,14 @@ public sealed class StatsPrinter
         _lease = lease;
         _log = log;
         _json = json;
+    }
+
+    /// <summary>Attached after construction: the sender needs the socket the hot
+    /// loop owns, so it is built later than this printer.</summary>
+    public DownlinkSender? Downlink
+    {
+        get => _downlink;
+        set => _downlink = value;
     }
 
     public void Run(CancellationToken cancellation)
@@ -170,8 +180,9 @@ public sealed class StatsPrinter
             .Key("ipdv_p99_us", jitP99)
             .Key("pipe_p99_us", pipeP99)
             .Key("gc0", gen0)
-            .Key("dl_pps", 0)
-            .Key("shm", "none")
+            .Key("dl_pps", delta.DownlinkSent)
+            .Key("dl_total", now.DownlinkSent)
+            .Key("shm", (_downlink?.ShmState ?? ShmState.None).ToString())
             .End());
     }
 

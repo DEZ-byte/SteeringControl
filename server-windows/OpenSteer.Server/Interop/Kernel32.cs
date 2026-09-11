@@ -53,4 +53,26 @@ internal static partial class Kernel32
         lastError = ok ? 0 : Marshal.GetLastPInvokeError();
         return ok;
     }
+
+    internal const uint CreateWaitableTimerHighResolution = 0x00000002;
+    internal const uint TimerAllAccess = 0x1F0003;
+    internal const uint WaitObject0 = 0;
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    internal static partial nint CreateWaitableTimerExW(
+        nint attributes, nint name, uint flags, uint desiredAccess);
+
+    /// <param name="dueTime">100 ns units. Negative means relative to now.</param>
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool SetWaitableTimer(
+        nint timer, in long dueTime, int period, nint completionRoutine,
+        nint argToCompletionRoutine, [MarshalAs(UnmanagedType.Bool)] bool resume);
+
+    [LibraryImport("kernel32.dll")]
+    internal static partial uint WaitForSingleObject(nint handle, uint milliseconds);
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool CloseHandle(nint handle);
 }
