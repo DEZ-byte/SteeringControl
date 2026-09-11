@@ -23,8 +23,20 @@ Copy it to:
 %USERPROFILE%\Documents\Assetto Corsa\cfg\controllers\savedsets\OpenSteer_Xbox360.ini
 ```
 
-Then load it in Content Manager under **Settings, Controls**, from the preset
-dropdown at the top.
+Then load it under **Settings, Controls**, from the preset dropdown at the top.
+
+### If you do not have Content Manager
+
+The stock launcher, `AssettoCorsa.exe` in the game folder, has the same Controls
+page and reads the same `savedsets` folder. The preset appears in its dropdown
+too.
+
+The folder does not exist until the game has been run once. Launch Assetto Corsa,
+let it reach the main menu, quit, and the whole `cfg` tree will be there.
+
+If the dropdown does not show the preset for any reason, set the four gamepad
+values by hand instead. They are listed in the table below, and the menu is the
+authority anyway.
 
 **Check the four gamepad values on screen after loading it.** Content Manager
 rewrites this file when it saves, and both it and the game have renamed keys
@@ -59,6 +71,25 @@ memory as stale and it sends zeroes as a heartbeat rather than pretending.
 physical wheel's motors. The phone's haptics are computed from engine speed, ABS,
 traction control and tyre slip, read straight out of the physics page. Turning the
 in-game slider to zero changes nothing on the phone.
+
+## Driving it without a phone
+
+`tools/drive_keys.py` sends the same packets the phone sends, at the same rate, so
+the daemon cannot tell the difference. It is the fastest way to find out whether
+the PC half works before any of the phone half exists.
+
+```bash
+python tools/drive_keys.py
+```
+
+A and D steer, W and S are the pedals, Space is the handbrake, E and Q shift, Esc
+stops. It reads the keyboard globally, so it keeps working after you switch to the
+game.
+
+The buttons stay dead for the first five seconds on purpose. A virtual pad's
+buttons are wired to Windows menu navigation when no game has the focus, so a
+handbrake press on the desktop clicks whatever is under it. The countdown is there
+so you can switch to the game first.
 
 ## Assignments
 
