@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>OpenSteer.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Invariant I16: Tests reference OpenSteer.Core ONLY, never the executable.
+         That is what makes CS0017 (duplicate entry point) and NETSDK1151
+         (self-contained exe referenced by a non-self-contained exe) structurally
+         impossible, which is why the Server project can set SelfContained=true. -->
+    <ProjectReference Include="..\OpenSteer.Core\OpenSteer.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\tools\golden_vectors.json"
+          Link="golden_vectors.json"
+          Condition="Exists('..\..\tools\golden_vectors.json')"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

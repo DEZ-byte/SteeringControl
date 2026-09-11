@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+
+    <!-- Deployment: self-contained single-file ReadyToRun.
+         NOT Native AOT - PublishAot's link step needs MSVC link.exe + the Windows SDK,
+         which this machine deliberately does not install. PublishReadyToRun (crossgen2)
+         and PublishSingleFile (host bundler) need no C++ toolchain at all. -->
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- OptimizationPreference is read by the AOT ILC compiler only and is inert in an
+         R2R build. Kept because it costs nothing. -->
+    <OptimizationPreference>Speed</OptimizationPreference>
+
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RootNamespace>OpenSteer.Server</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpenSteer.Core\OpenSteer.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Precompiled native client, extracted from the Nefarius.ViGEm.Client NuGet
+         package once at setup. Stays a LOOSE file beside the host on purpose so
+         NativeLibrary.SetDllImportResolver finds it via AppContext.BaseDirectory. -->
+    <None Include="..\..\third_party\vigem\ViGEmClient.dll"
+          Link="ViGEmClient.dll"
+          Condition="Exists('..\..\third_party\vigem\ViGEmClient.dll')"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest" />
+
+    <!-- Mode B is OPTIONAL: Memory Integrity / HVCI is enabled on this machine and
+         may refuse the vJoy driver. The Exists() guard keeps the build green when
+         vJoy is not installed. Set VJoyDll on the command line, e.g.
+         dotnet build -p:VJoyDll="C:\Program Files\vJoy\x64\vJoyInterface.dll" -->
+    <None Include="$(VJoyDll)"
+          Link="vJoyInterface.dll"
+          Condition="'$(VJoyDll)' != '' And Exists('$(VJoyDll)')"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

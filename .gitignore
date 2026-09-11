@@ -1,0 +1,38 @@
+# Build outputs
+bin/
+obj/
+TestResults/
+*.trx
+
+# Visual Studio & IDEs
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Generated project files and build trees
+client-ios/App/*.xcodeproj
+bridge-esp32/.pio/
+
+# Installers and archives pulled down by setup steps
+*.nupkg
+*.msi
+third_party/vjoy-sdk/
+
+# third_party/vigem holds one small, required, MIT-licensed native library.
+# It is tracked on purpose so the project builds with no external download;
+# anything else that lands in that folder is a setup artifact and is not.
+third_party/vigem/*
+!third_party/vigem/ViGEmClient.dll
+
+# Test evidence logs are run output, not source
+docs/evidence/*.jsonl

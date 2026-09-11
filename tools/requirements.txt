@@ -1,0 +1,6 @@
+# Intentionally empty: the OpenSteer test harness is standard library only.
+#
+# No third-party packages, on purpose. The XXH32 checksum is implemented in
+# osproto.py and verified against the published reference vectors rather than
+# delegated to the xxhash package, so the harness runs on a bare Python 3.13+
+# install with nothing to provision on a test machine.
