@@ -64,7 +64,7 @@ OpenSteerJoystick::OpenSteerJoystick() {
     static bool registered = false;
     if (!registered) {
         registered = true;
-        USBHID::addDevice(this, sizeof(kJoystickReportDescriptor));
+        hid_.addDevice(this, sizeof(kJoystickReportDescriptor));
     }
 }
 
@@ -82,18 +82,22 @@ void OpenSteerJoystick::end() {
 }
 
 bool OpenSteerJoystick::ready() const {
-    // Static on USBHID, called through the member for readability. It reports
-    // whether the host has opened the interface, not merely whether USB is up.
-    return USBHID::ready();
+    // Called through the instance, not as USBHID::ready().
+    //
+    // Calling a static member through an object is legal either way, so this form
+    // compiles whether the arduino-esp32 version in use declares these static or
+    // not. The qualified form only compiles if they are static, which makes it a
+    // build break waiting for whichever version disagrees.
+    return hid_.ready();
 }
 
 bool OpenSteerJoystick::send(const JoyReport& report, uint32_t timeoutMs) {
-    if (!USBHID::ready()) {
+    if (!hid_.ready()) {
         return false;
     }
     // Report id 0: there is no Report ID item in the descriptor, so TinyUSB sends
     // the payload with no prefix byte.
-    return USBHID::SendReport(0, &report, sizeof(report), timeoutMs);
+    return hid_.SendReport(0, &report, sizeof(report), timeoutMs);
 }
 
 }  // namespace osteer

@@ -75,6 +75,10 @@ public sealed class DownlinkSender : IDisposable
     /// </remarks>
     public void OnLeaseAcquired() => _leaseAcquired.Set();
 
+    /// <summary>The last frame that read cleanly, so a torn read can repeat it.
+    /// Telemetry thread only.</summary>
+    private AcTelemetry _lastGood;
+
     public void Run(CancellationToken cancellation)
     {
         using var timer = new HighResTimer(Stopwatch.Frequency);
@@ -103,9 +107,31 @@ public sealed class DownlinkSender : IDisposable
                 break;
             }
 
-            AcTelemetry telemetry = _reader.TryRead(now, out AcTelemetry read)
-                ? read
-                : default;
+            AcTelemetry telemetry;
+
+            if (_reader.TryRead(now, out AcTelemetry read))
+            {
+                telemetry = read;
+                _lastGood = read;
+            }
+            else if (_reader.State == ShmState.Attached)
+            {
+                // A read can fail while the page is healthy: the seqlock retries ran
+                // out because the game rewrote the page faster than it could be read.
+                // That is one frame out of sixty and repeating the previous one is
+                // invisible, where dropping to zeros is a haptic dropout the driver
+                // feels as the car briefly losing its engine.
+                telemetry = _lastGood;
+            }
+            else
+            {
+                // Not Attached means the game is gone or frozen, and here zeros are
+                // the honest answer. Repeating the last good frame would leave an
+                // engine note rumbling away after the game exited, which is worse
+                // than silence because it is indistinguishable from a live one.
+                telemetry = default;
+                _lastGood = default;
+            }
 
             Volatile.Write(ref _packedTelemetry, Pack(telemetry));
 

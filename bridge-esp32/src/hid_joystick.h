@@ -50,7 +50,10 @@ public:
     uint16_t _onGetDescriptor(uint8_t* buffer) override;
 
 private:
-    USBHID hid_;
+    /// `mutable` because `ready()` is const and, depending on the arduino-esp32
+    /// version, `USBHID::ready()` may be a non-const instance method. Nothing here
+    /// mutates observable state; the qualifier only keeps both shapes compiling.
+    mutable USBHID hid_;
 };
 
 /// The report descriptor, exposed so a test can assert its length and shape.

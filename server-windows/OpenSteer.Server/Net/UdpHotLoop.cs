@@ -43,6 +43,20 @@ public sealed class UdpHotLoop
     private readonly byte[] _receiveBuffer = new byte[65536];
     private readonly SocketAddress _from = new(AddressFamily.InterNetwork);
 
+    /// <summary>
+    /// The address of the last packet that was actually <b>accepted</b>, which is
+    /// not the same thing as the last packet the drain loop touched.
+    /// </summary>
+    /// <remarks>
+    /// <c>_from</c> is overwritten by every datagram, valid or not. Publishing the
+    /// lease from it after the loop hands the wheel to whoever sent the final
+    /// datagram of the burst, so one stray or malformed packet arriving behind a
+    /// real one moves the lease to the wrong endpoint. Every genuine packet after
+    /// that counts as other_src and the downlink goes to a machine that is not
+    /// driving.
+    /// </remarks>
+    private readonly SocketAddress _acceptedFrom = new(AddressFamily.InterNetwork);
+
     private readonly LatencyHistogram _interArrival = new();
     private readonly LatencyHistogram _pipeline = new();
     private readonly LatencyHistogram _jitter = new();
@@ -163,7 +177,7 @@ public sealed class UdpHotLoop
             {
                 if (leaseDirty)
                 {
-                    _lease.Publish(_from, now);
+                    _lease.Publish(_acceptedFrom, now);
                     Downlink?.OnLeaseAcquired();
                 }
                 else
@@ -209,13 +223,23 @@ public sealed class UdpHotLoop
         }
 
         // Step 5: the lease. Socket-typed, so it lives here rather than in Core.
-        bool sameEndpoint = _lease.Matches(_from);
+        //
+        // Once the lease has been claimed earlier in this same pass, the claimant
+        // is the authority for the rest of it, not the published lease. The
+        // published one is still stale - it is only written after the loop - so
+        // checking it again would let every later packet in the burst re-claim
+        // from a different address, reseeding the sequence each time and leaving
+        // whichever arrived last in possession.
+        bool sameEndpoint = leaseDirty
+            ? SameAddress(_acceptedFrom, _from)
+            : _lease.Matches(_from);
 
         if (!sameEndpoint)
         {
-            bool mayTakeOver = !_lease.HasPeer
-                            || _takeoverImmediate
-                            || _watchdog.State == WatchdogState.FailSafe;
+            bool mayTakeOver = !leaseDirty
+                            && (!_lease.HasPeer
+                                || _takeoverImmediate
+                                || _watchdog.State == WatchdogState.FailSafe);
 
             if (!mayTakeOver)
             {
@@ -261,7 +285,40 @@ public sealed class UdpHotLoop
         // A 32-byte copy onto the stack, NOT a reference into the receive buffer:
         // the next iteration of the drain loop overwrites that buffer.
         newest = MemoryMarshal.Read<UplinkPacket>(frame);
+
+        // Same reasoning, one level up: remember where this packet came from while
+        // we still know, because _from will not survive the next iteration.
+        CopyAddress(_from, _acceptedFrom);
         return true;
+    }
+
+    /// <summary>Byte comparison of two addresses. Never <c>==</c>, which is
+    /// reference equality on this class.</summary>
+    private static bool SameAddress(SocketAddress a, SocketAddress b)
+    {
+        if (a.Size != b.Size)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < a.Size; i++)
+        {
+            if (a[i] != b[i])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>Copies into a preallocated destination; allocates nothing.</summary>
+    private static void CopyAddress(SocketAddress source, SocketAddress destination)
+    {
+        for (int i = 0; i < source.Size && i < destination.Size; i++)
+        {
+            destination[i] = source[i];
+        }
     }
 
     /// <summary>

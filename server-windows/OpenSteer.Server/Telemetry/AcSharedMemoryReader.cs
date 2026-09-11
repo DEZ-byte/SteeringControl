@@ -142,8 +142,15 @@ public sealed class AcSharedMemoryReader : IDisposable
             _lastChangeTicks = nowTicks;
             SetState(ShmState.Attached);
         }
-        else if ((nowTicks - _lastChangeTicks) / TicksPerMs > StaleAfterMs)
+        else if (_lastChangeTicks != 0
+                 && (nowTicks - _lastChangeTicks) / TicksPerMs > StaleAfterMs)
         {
+            // Frozen for longer than the window. The mapping is still closed here,
+            // because a game that has exited leaves its section alive for as long
+            // as anyone holds a handle to it, and closing is the only way to find
+            // out that it is gone. The rate limit in Probe keeps that to once a
+            // second, and _lastPacketId now survives the round trip, so this no
+            // longer oscillates back to Attached on the way.
             SetState(ShmState.Stale);
             Close();
             return false;
@@ -182,10 +189,19 @@ public sealed class AcSharedMemoryReader : IDisposable
                 return;
             }
 
-            _lastPacketId = -1;
-            _lastChangeTicks = nowTicks;
+            // Deliberately does NOT reset _lastPacketId or _lastChangeTicks.
+            //
+            // A paused game leaves its counter frozen. Forgetting the counter here
+            // made the very next read see that frozen value as brand new, so the
+            // page was declared Attached, held for the two-second staleness window,
+            // dropped, re-probed and declared Attached again: a loop that rumbled
+            // the phone with a fixed engine speed for as long as the driver sat in
+            // a menu. Carrying the counter across means a frozen page stays
+            // recognisably frozen however many times it is re-opened.
+            //
+            // The state is not set here either. Whether this page is live is
+            // decided by whether its counter moves, which only TryRead can see.
             _loggedMissing = false;
-            SetState(ShmState.Attached);
         }
         catch (FileNotFoundException)
         {
@@ -221,6 +237,9 @@ public sealed class AcSharedMemoryReader : IDisposable
         _file = null;
         Capacity = 0;
 
+        // Stale is a more precise answer than None and is preserved: None means
+        // nothing is publishing, Stale means something is but has stopped moving.
+        // The driver's next question differs completely between the two.
         if (State == ShmState.Attached)
         {
             SetState(ShmState.None);
