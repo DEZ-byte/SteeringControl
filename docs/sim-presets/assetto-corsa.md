@@ -20,28 +20,26 @@ of its shared memory.
 Copy it to:
 
 ```
-%USERPROFILE%\Documents\Assetto Corsa\cfg\controllers\savedsets\OpenSteer_Xbox360.ini
+%USERPROFILE%\Documents\Assetto Corsa\cfg\controllers\presets\OpenSteer_Xbox360.ini
 ```
 
-Then load it under **Settings, Controls**, from the preset dropdown at the top.
-
-### If you do not have Content Manager
-
-The stock launcher, `AssettoCorsa.exe` in the game folder, has the same Controls
-page and reads the same `savedsets` folder. The preset appears in its dropdown
-too.
+**`presets`, not `savedsets`.** Both folders exist and only the first one feeds the
+preset list on the Controls page. A file in `savedsets` is silently ignored, which
+looks exactly like the file being malformed.
 
 The folder does not exist until the game has been run once. Launch Assetto Corsa,
-let it reach the main menu, quit, and the whole `cfg` tree will be there.
+let it reach the main menu, quit, and the whole `cfg` tree appears.
 
-If the dropdown does not show the preset for any reason, set the four gamepad
-values by hand instead. They are listed in the table below, and the menu is the
-authority anyway.
+Then load **OpenSteer_Xbox360** from the dropdown on the Controls page. This works
+in the stock launcher and in Content Manager; they read the same folder.
+
+The file is built from the game's own `X360Default.ini`, so every section the game
+expects is present and in the shape it expects. Twenty-two values differ from
+stock, and each one carries its reason inline.
 
 **Check the four gamepad values on screen after loading it.** Content Manager
-rewrites this file when it saves, and both it and the game have renamed keys
-across versions. The file is a convenience; the menu is the truth. Every setting
-in it is listed below with its menu location so you can confirm each one by eye.
+rewrites the file when it saves, and the game has renamed keys across versions.
+The file is a starting point; the menu is the truth.
 
 ## Why every number is what it is
 
@@ -93,19 +91,43 @@ so you can switch to the game first.
 
 ## Assignments
 
-Content Manager, **Settings, Controls, Gamepad**.
+With input method **Gamepad**, Assetto Corsa does not let you pick axes. The Xbox
+layout is fixed, and it already matches what the daemon sends.
 
-| Action | Control |
-|---|---|
-| Steer | Left stick X |
-| Throttle | Right trigger |
-| Brake | Left trigger |
-| Shift up | Right bumper |
-| Shift down | Left bumper |
-| Handbrake | B |
+| Action | Control | Set by the preset |
+|---|---|---|
+| Steer | Left stick X | fixed |
+| Throttle | Right trigger | fixed |
+| Brake | Left trigger | fixed |
+| Shift up | Right bumper | yes, stock was A |
+| Shift down | Left bumper | yes, stock was X |
+| Handbrake | B | already stock |
 
-Leave the clutch unassigned. The phone has no clutch control, so it sends zero on
-that axis always, and binding it would give you a clutch pedal stuck at rest.
+Two stock actions sat on the bumpers the paddles now use, so the preset frees
+them.
+
+The clutch stays unassigned. The phone sends zero on that axis always, so binding
+it would give a clutch pedal permanently at rest.
+
+## The keyboard shortcuts the preset clears
+
+This one is easy to miss and very confusing when it bites. Assetto Corsa's
+keyboard shortcuts fire whatever the input method is set to, and the stock Xbox
+preset puts several of them on exactly the keys `tools/drive_keys.py` drives with.
+
+| Key | Stock action | What you would see |
+|---|---|---|
+| A | Toggle ABS | steering left switches ABS on and off |
+| D | Rewind | steering right rewinds |
+| W | Glance right | the throttle turns your head |
+| S | Slow motion | braking drops the game to slow motion |
+| Q | Glance left, hide damage | downshifting looks sideways |
+| E | Celebrate | upshifting waves |
+| R | Replay | re-centring starts a replay |
+| Space | Pause replay | the handbrake pauses |
+
+The preset sets all of those to unbound. If you build your own preset instead, do
+the same or the test will be baffling.
 
 ## Choosing a lock to lock
 
