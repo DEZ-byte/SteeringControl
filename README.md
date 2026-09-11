@@ -11,14 +11,15 @@ Target end-to-end latency is under 3 ms.
 
 ## Status
 
-The protocol, the steering math and the safety watchdog are implemented and tested;
-the daemon that wires them to a virtual controller is not written yet.
+The protocol, the steering math, the safety watchdog and the Windows daemon are
+implemented and verified, including confirmation that the wheel reaches Windows as a
+real controller. The iOS client is next.
 
 | Component | State |
 |---|---|
 | `OpenSteer.Core` — wire format, checksum, validator, watchdog, axis math | implemented, 41 tests passing |
 | `tools/` — protocol reference, twist math, golden vectors, timing helpers | implemented, 24 tests passing |
-| `OpenSteer.Server` — hot loop, Win32 interop, output backends | not started |
+| `OpenSteer.Server` — hot loop, Win32 interop, output backends | implemented and tested on Windows |
 | `client-ios` — SwiftUI client | not started |
 | `bridge-esp32` — optional driverless USB-HID bridge | not started |
 
