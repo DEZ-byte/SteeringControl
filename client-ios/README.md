@@ -35,16 +35,25 @@ brew install xcodegen
 ```
 
 ```bash
-cd client-ios/App && DEVELOPMENT_TEAM=YOURTEAMID xcodegen generate
+cd client-ios/App && xcodegen generate
 ```
 
-`DEVELOPMENT_TEAM` is your ten-character Apple Developer team identifier. It is in
-the Membership tab at developer.apple.com. If you would rather not use an
-environment variable, replace `${DEVELOPMENT_TEAM}` in `project.yml` with the value.
-While you are there, change `bundleIdPrefix` from `com.opensteer` to your own
-reverse-DNS prefix.
+No team identifier is needed to generate, and none is written into the spec.
+Signing is set to automatic with the team left empty, so Xcode shows an empty
+**Team** dropdown under Signing & Capabilities and you pick your own the first time
+you open the project. A free Personal Team is enough to run on your own phone.
 
-Run every test:
+Two things to know about that choice. It is stored in `OpenSteer.xcodeproj`, which
+is generated and not tracked, so running `xcodegen generate` again resets it and
+you re-pick. And a Personal Team's provisioning expires after seven days, so the
+app stops launching from the home screen until you build to the phone again.
+
+If signing fails with **failed to register bundle identifier**, somebody else
+already owns `com.opensteer.OpenSteer`. Change `bundleIdPrefix` in `project.yml` to
+a prefix of your own and regenerate. That is the only edit needed.
+
+Run every test. The simulator needs no team at all, so this works before you have
+picked one:
 
 ```bash
 xcodebuild -project client-ios/App/OpenSteer.xcodeproj -scheme OpenSteer -destination 'platform=iOS Simulator,name=iPhone 15 Pro' test

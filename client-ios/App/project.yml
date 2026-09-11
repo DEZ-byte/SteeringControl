@@ -2,7 +2,11 @@
 #
 #   brew install xcodegen
 #   cd client-ios/App
-#   DEVELOPMENT_TEAM=ABCDE12345 xcodegen generate
+#   xcodegen generate
+#   open OpenSteer.xcodeproj        # pick your team under Signing & Capabilities
+#
+# Or straight to the simulator, which needs no team at all:
+#
 #   xcodebuild -project OpenSteer.xcodeproj -scheme OpenSteer \
 #     -destination 'platform=iOS Simulator,name=iPhone 15 Pro' test
 #
@@ -13,7 +17,12 @@
 name: OpenSteer
 
 options:
-  # Change this to your own reverse-DNS prefix. It sets the bundle identifier.
+  # The reverse-DNS prefix behind every bundle identifier here.
+  #
+  # Bundle identifiers are unique across all of Apple, not just across your
+  # account. If signing fails with "failed to register bundle identifier",
+  # somebody else already owns com.opensteer.OpenSteer: change this line to
+  # something of your own and regenerate. It is the only edit needed.
   bundleIdPrefix: com.opensteer
   deploymentTarget:
     iOS: "17.0"
@@ -29,9 +38,18 @@ settings:
     # Complete checking, not minimal. The whole design rests on which queue owns
     # which data, and this is the compiler agreeing to check that claim.
     SWIFT_STRICT_CONCURRENCY: complete
-    # Set DEVELOPMENT_TEAM in the environment before running xcodegen, or replace
-    # this with your ten-character Apple team id.
-    DEVELOPMENT_TEAM: ${DEVELOPMENT_TEAM}
+    # Automatic signing, and deliberately NO `DEVELOPMENT_TEAM` key.
+    #
+    # Xcode then shows an empty Team dropdown under Signing & Capabilities, and
+    # whoever opens the project picks their own, including a free Personal Team.
+    # Writing a team id in here would be a second source of truth: Xcode would
+    # keep showing the baked-in one, and a different developer on a different Mac
+    # would get an opaque provisioning failure instead of a dropdown.
+    #
+    # The choice is stored in OpenSteer.xcodeproj, which is generated and
+    # gitignored, so `xcodegen generate` resets it. Regenerate only when this
+    # spec changes, and re-pick the team afterwards. The simulator needs no team,
+    # so the whole test run works without picking one at all.
     CODE_SIGN_STYLE: Automatic
     # iPhone only. There is no Taptic Engine in an iPad, so half the app would be
     # missing and the landscape layout assumes a phone-sized reach.
