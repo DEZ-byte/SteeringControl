@@ -78,8 +78,30 @@ public sealed class ViGEmX360Sink : IOutputSink
         }
 
         _added = true;
+        WarmUp();
         error = string.Empty;
         return true;
+    }
+
+    /// <summary>
+    /// Pushes neutral reports before the first real packet arrives.
+    /// </summary>
+    /// <remarks>
+    /// Measured over a 150 second soak: without this, the first one-second window
+    /// showed a receive-to-inject p99 of 3200 us while all 149 later windows sat at
+    /// or under 300 us. The cost lands on the very first input the driver ever sees,
+    /// which is the worst place to spend it. Paying it here takes about 25 ms of
+    /// startup and gets both the driver IOCTL path and the tiered JIT hot before
+    /// anyone is steering.
+    /// </remarks>
+    private void WarmUp()
+    {
+        var neutral = default(XusbReport);
+
+        for (int i = 0; i < 256; i++)
+        {
+            ViGEmNative.vigem_target_x360_update(_client, _target, neutral);
+        }
     }
 
     public bool IsAttached => _added && ViGEmNative.vigem_target_is_attached(_target);
