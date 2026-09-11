@@ -3,6 +3,8 @@
 #include <atomic>
 
 #include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "lwip/ip_addr.h"
 #include "lwip/pbuf.h"
 #include "lwip/tcpip.h"
@@ -135,13 +137,21 @@ void onUplinkRaw(void* /*arg*/, udp_pcb* /*pcb*/, pbuf* p,
     postMail(msg);
 }
 
+// Handshake for the bind, which happens on another task.
+//
+// Created once and never deleted. A local semaphore would be tempting, but if the
+// wait below ever timed out, the callback would later signal a handle that had
+// already been freed.
+SemaphoreHandle_t gBindDone = nullptr;
+bool gBindOk = false;
+
 /// Runs on the tcpip task, which is the only place lwIP's raw API may be touched.
-void bindOnTcpipTask(void* arg) {
-    bool* ok = static_cast<bool*>(arg);
+void bindOnTcpipTask(void* /*arg*/) {
+    gBindOk = false;
 
     gPcb = udp_new();
     if (gPcb == nullptr) {
-        *ok = false;
+        xSemaphoreGive(gBindDone);
         return;
     }
 
@@ -151,24 +161,42 @@ void bindOnTcpipTask(void* arg) {
     if (udp_bind(gPcb, IP_ADDR_ANY, cfg::kUdpPort) != ERR_OK) {
         udp_remove(gPcb);
         gPcb = nullptr;
-        *ok = false;
+        xSemaphoreGive(gBindDone);
         return;
     }
 
     udp_recv(gPcb, onUplinkRaw, nullptr);
-    *ok = true;
+    gBindOk = true;
+    xSemaphoreGive(gBindDone);
 }
 
 }  // namespace
 
 bool startUplinkReceiver() {
-    bool ok = false;
-    // Blocking form. It runs the callback on the tcpip task and waits, so the
-    // result is known before setup() moves on to say the bridge is ready.
-    if (tcpip_callback(bindOnTcpipTask, &ok) != ERR_OK) {
+    if (gBindDone == nullptr) {
+        gBindDone = xSemaphoreCreateBinary();
+        if (gBindDone == nullptr) {
+            return false;
+        }
+    }
+
+    // `tcpip_callback` posts the work to the tcpip task and returns at once. It
+    // does NOT wait for the callback to run, so the result has to be waited for
+    // explicitly. Reading the flag straight after the call would read it before
+    // the bind had happened, report a failure that did not occur, and leave the
+    // bridge sitting on a fault light with a perfectly good radio.
+    if (tcpip_callback(bindOnTcpipTask, nullptr) != ERR_OK) {
         return false;
     }
-    return ok;
+
+    // Two seconds is far longer than the tcpip task ever takes to drain its
+    // mailbox. If it expires, something is wrong enough that failing loudly is
+    // better than waiting forever inside setup().
+    if (xSemaphoreTake(gBindDone, pdMS_TO_TICKS(2000)) != pdTRUE) {
+        return false;
+    }
+
+    return gBindOk;
 }
 
 UplinkStats readUplinkStats() {

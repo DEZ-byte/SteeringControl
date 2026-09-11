@@ -11,6 +11,9 @@
 
 #include <Arduino.h>
 #include <USB.h>
+#include <USBCDC.h>
+
+#include "esp_system.h"
 
 #include "src/config.h"
 #include "src/hid_joystick.h"
