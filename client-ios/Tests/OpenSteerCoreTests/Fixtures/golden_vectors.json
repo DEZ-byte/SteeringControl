@@ -1,0 +1,686 @@
+{
+  "version": 1,
+  "generator": "tools/golden_vectors.py",
+  "note": "All values computed by execution. Do not hand-edit.",
+  "checksum": {
+    "algorithm": "XXH32",
+    "seed": "0x4F535401",
+    "covered_bytes": 28,
+    "stored_at_offset": 28,
+    "stored_little_endian": true
+  },
+  "sizes": {
+    "uplink": 32,
+    "downlink": 16
+  },
+  "magics": {
+    "uplink_value": "0x4F535452",
+    "uplink_wire_bytes": "52 54 53 4f",
+    "downlink_value": "0x46464231",
+    "downlink_wire_bytes": "31 42 46 46"
+  },
+  "xxh32_generic": [
+    {
+      "data_hex": "",
+      "seed": "0x00000000",
+      "expect": "0x02CC5D05"
+    },
+    {
+      "data_hex": "61",
+      "seed": "0x00000000",
+      "expect": "0x550D7456"
+    },
+    {
+      "data_hex": "616263",
+      "seed": "0x00000000",
+      "expect": "0x32D153FF"
+    },
+    {
+      "data_hex": "4e6f626f647920696e73706563747320746865207370616d6d6973682072657065746974696f6e",
+      "seed": "0x00000000",
+      "expect": "0xE2293B2F"
+    }
+  ],
+  "xxh32_28": [
+    {
+      "name": "KAT-0",
+      "data_hex": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+      "expect": "0x38018272"
+    },
+    {
+      "name": "KAT-1",
+      "data_hex": "52 54 53 4f 01 00 39 30 ff ff 00 00 00 00 00 00 05 00 00 00 89 67 45 23 01 00 00 00",
+      "expect": "0xF4FDFD7A"
+    },
+    {
+      "name": "KAT-2",
+      "data_hex": "52 54 53 4f ff ff 00 80 00 00 ff ff 00 80 00 00 07 00 00 80 ff ff ff ff ff ff ff ff",
+      "expect": "0xA5B68410"
+    }
+  ],
+  "uplink": [
+    {
+      "name": "U0-zero",
+      "fields": {
+        "seq": 0,
+        "steer": 0,
+        "throttle": 0,
+        "brake": 0,
+        "clutch": 0,
+        "buttons": 0,
+        "ts_ns": 0
+      },
+      "hex": "52 54 53 4f 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 c0 09 f1 a1",
+      "checksum": "0xA1F109C0"
+    },
+    {
+      "name": "U1-kat1",
+      "fields": {
+        "seq": 1,
+        "steer": 12345,
+        "throttle": 65535,
+        "brake": 0,
+        "clutch": 0,
+        "buttons": 5,
+        "ts_ns": 4886718345
+      },
+      "hex": "52 54 53 4f 01 00 39 30 ff ff 00 00 00 00 00 00 05 00 00 00 89 67 45 23 01 00 00 00 7a fd fd f4",
+      "checksum": "0xF4FDFD7A"
+    },
+    {
+      "name": "U2-extremes",
+      "fields": {
+        "seq": 65535,
+        "steer": -32767,
+        "throttle": 0,
+        "brake": 65535,
+        "clutch": 32768,
+        "buttons": 2147483655,
+        "ts_ns": 18446744073709551615
+      },
+      "hex": "52 54 53 4f ff ff 01 80 00 00 ff ff 00 80 00 00 07 00 00 80 ff ff ff ff ff ff ff ff 7a 1d cd 0a",
+      "checksum": "0x0ACD1D7A"
+    },
+    {
+      "name": "U3-right-lock",
+      "fields": {
+        "seq": 4660,
+        "steer": 32767,
+        "throttle": 1,
+        "brake": 2,
+        "clutch": 3,
+        "buttons": 4294967295,
+        "ts_ns": 1000000000
+      },
+      "hex": "52 54 53 4f 34 12 ff 7f 01 00 02 00 03 00 00 00 ff ff ff ff 00 ca 9a 3b 00 00 00 00 e7 89 86 76",
+      "checksum": "0x768689E7"
+    }
+  ],
+  "downlink": [
+    {
+      "name": "D0-mid",
+      "fields": {
+        "rpm": 7250,
+        "abs_active": 1,
+        "tc_active": 0,
+        "slip": 0.125
+      },
+      "hex": "31 42 46 46 52 1c 01 00 00 00 00 3e 00 00 00 00"
+    },
+    {
+      "name": "D1-idle",
+      "fields": {
+        "rpm": 0,
+        "abs_active": 0,
+        "tc_active": 1,
+        "slip": 0.0
+      },
+      "hex": "31 42 46 46 00 00 00 01 00 00 00 00 00 00 00 00"
+    },
+    {
+      "name": "D2-negzero",
+      "fields": {
+        "rpm": 8000,
+        "abs_active": 0,
+        "tc_active": 0,
+        "slip": -0.0
+      },
+      "hex": "31 42 46 46 40 1f 00 00 00 00 00 80 00 00 00 00"
+    },
+    {
+      "name": "D3-full",
+      "fields": {
+        "rpm": 65535,
+        "abs_active": 1,
+        "tc_active": 1,
+        "slip": 1.0
+      },
+      "hex": "31 42 46 46 ff ff 01 01 00 00 80 3f 00 00 00 00"
+    }
+  ],
+  "reject": [
+    {
+      "name": "short",
+      "hex": "52 54 53 4f 07 00 64 00 c8 00 2c 01 90 01 00 00 01 00 00 00 2a 00 00 00 00 00 00 00 a2 2a b9",
+      "verdict": "bad_len"
+    },
+    {
+      "name": "oversize",
+      "hex": "52 54 53 4f 07 00 64 00 c8 00 2c 01 90 01 00 00 01 00 00 00 2a 00 00 00 00 00 00 00 a2 2a b9 b6 00",
+      "verdict": "bad_len"
+    },
+    {
+      "name": "bad_magic",
+      "hex": "53 54 53 4f 07 00 64 00 c8 00 2c 01 90 01 00 00 01 00 00 00 2a 00 00 00 00 00 00 00 a2 2a b9 b6",
+      "verdict": "bad_magic"
+    },
+    {
+      "name": "bad_csum",
+      "hex": "52 54 53 4f 07 00 64 00 c8 00 2c 01 90 01 00 00 01 00 00 00 2a 00 00 00 00 00 00 00 f8 70 e3 ec",
+      "verdict": "bad_csum"
+    },
+    {
+      "name": "bad_pad",
+      "hex": "52 54 53 4f 07 00 64 00 c8 00 2c 01 90 01 ff ff 01 00 00 00 2a 00 00 00 00 00 00 00 8f dd ae ef",
+      "verdict": "bad_pad"
+    }
+  ],
+  "seq_wrap": [
+    {
+      "seq": 0,
+      "last_seq": 65535,
+      "delta": 1,
+      "newer": true
+    },
+    {
+      "seq": 65535,
+      "last_seq": 0,
+      "delta": -1,
+      "newer": false
+    },
+    {
+      "seq": 5,
+      "last_seq": 5,
+      "delta": 0,
+      "newer": false
+    },
+    {
+      "seq": 32768,
+      "last_seq": 0,
+      "delta": -32768,
+      "newer": false
+    },
+    {
+      "seq": 32767,
+      "last_seq": 0,
+      "delta": 32767,
+      "newer": true
+    },
+    {
+      "seq": 1,
+      "last_seq": 0,
+      "delta": 1,
+      "newer": true
+    },
+    {
+      "seq": 0,
+      "last_seq": 1,
+      "delta": -1,
+      "newer": false
+    },
+    {
+      "seq": 100,
+      "last_seq": 90,
+      "delta": 10,
+      "newer": true
+    }
+  ],
+  "twist": [
+    {
+      "name": "TV0-identity",
+      "q_ref": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "q_cur": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "theta_deg": 0.0,
+      "naive_projection_deg": 0.0,
+      "dor_deg": 360,
+      "deadband": 0.0,
+      "gamma": 1.0,
+      "steer_norm": 0.0,
+      "steer_i16": 0
+    },
+    {
+      "name": "TV1-flat-30",
+      "q_ref": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "q_cur": [
+        0.9659258262890683,
+        0.0,
+        0.0,
+        0.25881904510252074
+      ],
+      "theta_deg": 29.999999999999996,
+      "naive_projection_deg": 0.0,
+      "dor_deg": 360,
+      "deadband": 0.0,
+      "gamma": 1.0,
+      "steer_norm": -0.16666666666666666,
+      "steer_i16": -5461
+    },
+    {
+      "name": "TV2-tilt60-twist10",
+      "q_ref": [
+        0.8660254037844387,
+        0.49999999999999994,
+        0.0,
+        0.0
+      ],
+      "q_cur": [
+        0.862729915662821,
+        0.4980973490458727,
+        -0.043577871373829076,
+        0.07547908730517333
+      ],
+      "theta_deg": 9.999999999999998,
+      "naive_projection_deg": -10.000000000000002,
+      "dor_deg": 360,
+      "deadband": 0.0,
+      "gamma": 1.0,
+      "steer_norm": -0.055555555555555546,
+      "steer_i16": -1820
+    },
+    {
+      "name": "TV3-tilt85-twist10-swing20",
+      "q_ref": [
+        0.7372773368101241,
+        0.6755902076156602,
+        0.0,
+        0.0
+      ],
+      "q_cur": [
+        0.7335381740507165,
+        0.6516364296212286,
+        0.06955266205585806,
+        0.18015032057085528
+      ],
+      "theta_deg": 9.999999999999998,
+      "naive_projection_deg": -7.705815921495742,
+      "dor_deg": 360,
+      "deadband": 0.0,
+      "gamma": 1.0,
+      "steer_norm": -0.055555555555555546,
+      "steer_i16": -1820
+    },
+    {
+      "name": "TV3b-tilt85-tilt-only",
+      "q_ref": [
+        0.7372773368101241,
+        0.6755902076156602,
+        0.0,
+        0.0
+      ],
+      "q_cur": [
+        0.7344717739534478,
+        0.6730193829094223,
+        0.0642579539007017,
+        0.058881566337787454
+      ],
+      "theta_deg": -7.981759709111101e-16,
+      "naive_projection_deg": 0.8703846749799746,
+      "dor_deg": 360,
+      "deadband": 0.0,
+      "gamma": 1.0,
+      "steer_norm": 4.434310949506167e-18,
+      "steer_i16": 0
+    },
+    {
+      "name": "TV6-deadband-gamma",
+      "q_ref": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "q_cur": [
+        0.7071067811865476,
+        -0.0,
+        -0.0,
+        -0.7071067811865476
+      ],
+      "theta_deg": -90.0,
+      "naive_projection_deg": 0.0,
+      "dor_deg": 360,
+      "deadband": 0.05,
+      "gamma": 1.2,
+      "steer_norm": 0.4079309813701061,
+      "steer_i16": 13367
+    }
+  ],
+  "unwrap": {
+    "name": "TV4-unwrap-400deg",
+    "sequence_deg": [
+      0,
+      5,
+      10,
+      15,
+      20,
+      25,
+      30,
+      35,
+      40,
+      45,
+      50,
+      55,
+      60,
+      65,
+      70,
+      75,
+      80,
+      85,
+      90,
+      95,
+      100,
+      105,
+      110,
+      115,
+      120,
+      125,
+      130,
+      135,
+      140,
+      145,
+      150,
+      155,
+      160,
+      165,
+      170,
+      175,
+      180,
+      185,
+      190,
+      195,
+      200,
+      205,
+      210,
+      215,
+      220,
+      225,
+      230,
+      235,
+      240,
+      245,
+      250,
+      255,
+      260,
+      265,
+      270,
+      275,
+      280,
+      285,
+      290,
+      295,
+      300,
+      305,
+      310,
+      315,
+      320,
+      325,
+      330,
+      335,
+      340,
+      345,
+      350,
+      355,
+      360,
+      365,
+      370,
+      375,
+      380,
+      385,
+      390,
+      395,
+      400
+    ],
+    "continuous_deg": 400.0000000000002,
+    "dor_deg": 900,
+    "steer_norm": -0.8888888888888894,
+    "steer_i16": -29126
+  },
+  "steer_map": [
+    {
+      "theta_cont_deg": 200.0,
+      "dor_deg": 360,
+      "deadband": 0.0,
+      "gamma": 1.0,
+      "steer_norm": -1.0,
+      "steer_i16": -32767
+    },
+    {
+      "theta_cont_deg": -200.0,
+      "dor_deg": 360,
+      "deadband": 0.0,
+      "gamma": 1.0,
+      "steer_norm": 1.0,
+      "steer_i16": 32767
+    },
+    {
+      "theta_cont_deg": 0.0,
+      "dor_deg": 360,
+      "deadband": 0.0,
+      "gamma": 1.0,
+      "steer_norm": 0.0,
+      "steer_i16": 0
+    },
+    {
+      "theta_cont_deg": 180.0,
+      "dor_deg": 360,
+      "deadband": 0.0,
+      "gamma": 1.0,
+      "steer_norm": -1.0,
+      "steer_i16": -32767
+    },
+    {
+      "theta_cont_deg": -180.0,
+      "dor_deg": 360,
+      "deadband": 0.0,
+      "gamma": 1.0,
+      "steer_norm": 1.0,
+      "steer_i16": 32767
+    },
+    {
+      "theta_cont_deg": 90.0,
+      "dor_deg": 360,
+      "deadband": 0.0,
+      "gamma": 1.0,
+      "steer_norm": -0.5,
+      "steer_i16": -16384
+    },
+    {
+      "theta_cont_deg": -45.0,
+      "dor_deg": 360,
+      "deadband": 0.0,
+      "gamma": 1.0,
+      "steer_norm": 0.25,
+      "steer_i16": 8192
+    }
+  ],
+  "steer_i16_from_norm": [
+    {
+      "norm": -1.0,
+      "steer_i16": -32767
+    },
+    {
+      "norm": -0.5,
+      "steer_i16": -16384
+    },
+    {
+      "norm": 0.0,
+      "steer_i16": 0
+    },
+    {
+      "norm": 0.5,
+      "steer_i16": 16384
+    },
+    {
+      "norm": 1.0,
+      "steer_i16": 32767
+    }
+  ],
+  "shape": [
+    {
+      "x": 0.0,
+      "deadband": 0.05,
+      "gamma": 1.2,
+      "y": 0.0
+    },
+    {
+      "x": 0.05,
+      "deadband": 0.05,
+      "gamma": 1.2,
+      "y": 0.0
+    },
+    {
+      "x": 0.5,
+      "deadband": 0.05,
+      "gamma": 1.2,
+      "y": 0.4079309813701061
+    },
+    {
+      "x": -0.5,
+      "deadband": 0.05,
+      "gamma": 1.2,
+      "y": -0.4079309813701061
+    },
+    {
+      "x": 1.0,
+      "deadband": 0.05,
+      "gamma": 1.2,
+      "y": 1.0
+    },
+    {
+      "x": -1.0,
+      "deadband": 0.05,
+      "gamma": 1.2,
+      "y": -1.0
+    }
+  ],
+  "watchdog": {
+    "t_soft_ms": 100.0,
+    "t_hard_ms": 250.0,
+    "tau_ms": 30.0,
+    "t_slew_ms": 300.0,
+    "t_pslew_ms": 100.0,
+    "decay_floor": 257,
+    "failsafe": {
+      "steer": 0,
+      "throttle": 0,
+      "brake": 0,
+      "clutch": 0,
+      "buttons": 0,
+      "note": "brake is 0, never 65535 - the car coasts"
+    },
+    "decay_from_40000": [
+      {
+        "silence_ms": 100,
+        "value": 40000
+      },
+      {
+        "silence_ms": 120,
+        "value": 20537
+      },
+      {
+        "silence_ms": 150,
+        "value": 7555
+      },
+      {
+        "silence_ms": 200,
+        "value": 1427
+      },
+      {
+        "silence_ms": 240,
+        "value": 376
+      },
+      {
+        "silence_ms": 245,
+        "value": 318
+      },
+      {
+        "silence_ms": 249,
+        "value": 279
+      },
+      {
+        "silence_ms": 250,
+        "value": 0
+      }
+    ],
+    "steer_slew_0_to_32767": [
+      {
+        "elapsed_ms": 0,
+        "value": 0
+      },
+      {
+        "elapsed_ms": 75,
+        "value": 8192
+      },
+      {
+        "elapsed_ms": 150,
+        "value": 16384
+      },
+      {
+        "elapsed_ms": 285,
+        "value": 31129
+      },
+      {
+        "elapsed_ms": 297,
+        "value": 32439
+      },
+      {
+        "elapsed_ms": 299,
+        "value": 32658
+      },
+      {
+        "elapsed_ms": 300,
+        "value": 32767
+      }
+    ],
+    "pedal_slew_0_to_65535": [
+      {
+        "elapsed_ms": 0,
+        "value": 0
+      },
+      {
+        "elapsed_ms": 25,
+        "value": 16384
+      },
+      {
+        "elapsed_ms": 50,
+        "value": 32768
+      },
+      {
+        "elapsed_ms": 95,
+        "value": 62258
+      },
+      {
+        "elapsed_ms": 99,
+        "value": 64880
+      },
+      {
+        "elapsed_ms": 100,
+        "value": 65535
+      }
+    ]
+  }
+}

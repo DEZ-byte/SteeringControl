@@ -20,7 +20,15 @@ __pycache__/
 Thumbs.db
 
 # Generated project files and build trees
+# The .xcodeproj is produced by `xcodegen generate` from App/project.yml. A project
+# file is a merge-conflict machine and nobody can review a diff of one, so the spec
+# is the source of truth and the project is rebuilt on demand.
 client-ios/App/*.xcodeproj
+client-ios/App/*.xcworkspace
+client-ios/.build/
+client-ios/.swiftpm/
+DerivedData/
+*.xcuserdatad
 bridge-esp32/.pio/
 
 # Installers and archives pulled down by setup steps

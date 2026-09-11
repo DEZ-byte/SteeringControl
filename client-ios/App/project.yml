@@ -1,0 +1,140 @@
+# XcodeGen specification for the OpenSteer iPhone app.
+#
+#   brew install xcodegen
+#   cd client-ios/App
+#   DEVELOPMENT_TEAM=ABCDE12345 xcodegen generate
+#   xcodebuild -project OpenSteer.xcodeproj -scheme OpenSteer \
+#     -destination 'platform=iOS Simulator,name=iPhone 15 Pro' test
+#
+# OpenSteer.xcodeproj is generated, never committed. That is the point of keeping
+# the spec in version control instead: a project file is a merge-conflict machine
+# and nobody can review a diff of one.
+
+name: OpenSteer
+
+options:
+  # Change this to your own reverse-DNS prefix. It sets the bundle identifier.
+  bundleIdPrefix: com.opensteer
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+settings:
+  base:
+    # The Swift *language mode*, not the toolchain version: swiftc takes 4.0,
+    # 4.2 and 5.0 and rejects anything else outright. The toolchain is pinned
+    # separately by `// swift-tools-version:5.9` in Package.swift.
+    SWIFT_VERSION: "5.0"
+    # Complete checking, not minimal. The whole design rests on which queue owns
+    # which data, and this is the compiler agreeing to check that claim.
+    SWIFT_STRICT_CONCURRENCY: complete
+    # Set DEVELOPMENT_TEAM in the environment before running xcodegen, or replace
+    # this with your ten-character Apple team id.
+    DEVELOPMENT_TEAM: ${DEVELOPMENT_TEAM}
+    CODE_SIGN_STYLE: Automatic
+    # iPhone only. There is no Taptic Engine in an iPad, so half the app would be
+    # missing and the landscape layout assumes a phone-sized reach.
+    TARGETED_DEVICE_FAMILY: "1"
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+  configs:
+    Release:
+      SWIFT_COMPILATION_MODE: wholemodule
+      SWIFT_OPTIMIZATION_LEVEL: "-O"
+
+packages:
+  OpenSteerCore:
+    # ../Package.swift, the Foundation-only maths and wire library.
+    path: ..
+
+targets:
+  OpenSteer:
+    type: application
+    platform: iOS
+    sources:
+      - path: OpenSteer
+    dependencies:
+      - package: OpenSteerCore
+        product: OpenSteerCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.opensteer.OpenSteer
+    info:
+      path: OpenSteer/Info.plist
+      properties:
+        # The launch screen goes in the plist, not in an INFOPLIST_KEY_ build
+        # setting: those are only merged when GENERATE_INFOPLIST_FILE is on, and
+        # this target supplies its own plist. Without the key iOS launches the app
+        # in legacy compatibility mode, letterboxed and at the wrong size. The
+        # empty dictionary is the plain system launch screen and needs no asset
+        # catalog, which matters because this target has none.
+        UILaunchScreen: {}
+
+        CFBundleDisplayName: OpenSteer
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+
+        # ProMotion. Without this key iOS caps the app at 60 frames per second no
+        # matter what frame rate range the display link asks for, and the wheel
+        # graphic visibly lags the steering it is meant to be showing.
+        CADisableMinimumFrameDurationOnPhone: true
+
+        # Landscape only, both ways, so the phone can be held either way up.
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIRequiresFullScreen: true
+
+        # The status bar would sit on top of a thumb zone and serves no purpose
+        # while driving. Set in the plist rather than overridden in code, which is
+        # the only combination that works reliably with a SwiftUI lifecycle.
+        UIStatusBarHidden: true
+        UIViewControllerBasedStatusBarAppearance: false
+
+        # iOS blocks all local network traffic until the driver approves it. This
+        # string is what they are shown; a vague one gets refused.
+        NSLocalNetworkUsageDescription: >-
+          OpenSteer sends your steering and pedal input to the OpenSteer daemon
+          running on your PC over your local Wi-Fi network, and receives game
+          telemetry back for haptics. Nothing leaves your network.
+
+        # No custom cryptography, so the annual export compliance prompt is
+        # answered once here instead of on every upload.
+        ITSAppUsesNonExemptEncryption: false
+
+        UIApplicationSupportsIndirectInputEvents: true
+
+  OpenSteerAppTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: OpenSteerTests
+    dependencies:
+      - target: OpenSteer
+      - package: OpenSteerCore
+        product: OpenSteerCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.opensteer.OpenSteerAppTests
+
+schemes:
+  OpenSteer:
+    build:
+      targets:
+        OpenSteer: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      gatherCoverageData: false
+      targets:
+        - OpenSteerAppTests
+        # The Core suite comes in through the local package, so one `xcodebuild
+        # test` run covers the app tests and the Core tests together.
+        - package: OpenSteerCore/OpenSteerCoreTests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

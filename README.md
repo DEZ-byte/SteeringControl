@@ -14,7 +14,12 @@ Target end-to-end latency is under 3 ms.
 The PC backend is complete. The protocol, the steering math, the safety watchdog,
 the Windows daemon, the Assetto Corsa telemetry reader and the 60 Hz force-feedback
 downlink are all implemented and verified. The wheel is confirmed to reach Windows
-as a real controller. The iOS client is next.
+as a real controller.
+
+The iOS client is written and waiting for a Mac. Its steering maths, wire format and
+haptics policy are pinned to the same golden fixture the C# suite uses, so both ends
+agree with an outside reference rather than with each other. Nothing in it has been
+compiled yet: that needs a Mac with Xcode.
 
 | Component | State |
 |---|---|
@@ -22,7 +27,7 @@ as a real controller. The iOS client is next.
 | `tools/` — protocol reference, twist math, golden vectors, timing helpers | implemented, 24 tests passing |
 | `OpenSteer.Server` — hot loop, Win32 interop, output backends | implemented and tested on Windows |
 | Telemetry reader and force-feedback downlink | implemented and tested against a mock physics page |
-| `client-ios` — SwiftUI client | not started |
+| `client-ios` — SwiftUI client | written, not yet built on a Mac |
 | `bridge-esp32` — optional driverless USB-HID bridge | not started |
 
 ## Layout
@@ -33,7 +38,10 @@ server-windows/
   OpenSteer.Server/   the daemon: hot loop, P/Invoke, output backends
   OpenSteer.Tests/    xunit, references Core only
 tools/                Python test harness and the cross-language fixture
-client-ios/           SwiftUI client (planned)
+client-ios/
+  Sources/OpenSteerCore/   twist math, wire codecs, haptics policy: Foundation only
+  Tests/                   XCTest, pinned to the same golden fixture as C#
+  App/                     XcodeGen spec and the SwiftUI app
 bridge-esp32/         ESP32-S3 Wi-Fi to USB-HID bridge (planned, optional)
 ```
 
