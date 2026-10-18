@@ -30,6 +30,7 @@ client-ios/.swiftpm/
 DerivedData/
 *.xcuserdatad
 bridge-esp32/.pio/
+bridge-esp32/*.ino.cpp
 
 # Installers and archives pulled down by setup steps
 *.nupkg
