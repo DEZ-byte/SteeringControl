@@ -30,7 +30,7 @@ final class PedalMapperTests: XCTestCase {
     }
 
     /// The ratchet down. A thumb that runs past full travel drags the anchor with
-    /// it, so the pedal stays pinned at 100 per cent instead of being stuck at an
+    /// it, so the pedal stays pinned at 100 percent instead of being stuck at an
     /// anchor the thumb can no longer reach.
     func testRatchetFollowsTheThumbPastFullTravel() {
         var pedal = PedalMapper(travel: 140)
@@ -59,8 +59,8 @@ final class PedalMapperTests: XCTestCase {
         XCTAssertEqual(pedal.value, 0.5, accuracy: 1e-12)
     }
 
-    /// No easing on release. A throttle that coasts down after the thumb leaves
-    /// it is how you spin the car on corner exit.
+    /// No easing on release. A throttle that ramps down after the thumb lifts can
+    /// spin the car on corner exit.
     func testLiftingTheThumbReleasesAtOnce() {
         var pedal = PedalMapper(travel: 140)
         pedal.began(at: 500)

@@ -5,8 +5,8 @@ import OpenSteerCore
 
 /// Everything the driver can change, remembered between runs.
 ///
-/// Stored in `UserDefaults`, so the host address survives a restart. Nobody wants
-/// to retype an IP address while sitting in a rig.
+/// Stored in `UserDefaults`, so the host address survives a restart and does not
+/// have to be retyped.
 ///
 /// Written out by hand rather than with `@AppStorage`. That wrapper is a
 /// `DynamicProperty`: it only republishes when SwiftUI installs it in a view
@@ -92,7 +92,7 @@ final class AppSettings: ObservableObject {
         set { degreesOfRotation = newValue.rawValue }
     }
 
-    /// A host string that could plausibly be reached. Deliberately loose: a
+    /// A host string that could plausibly be reached. Kept loose: a
     /// hostname, an IPv4 address and a `.local` name are all valid, and rejecting
     /// something the network stack would have accepted is worse than trying.
     var isHostUsable: Bool {

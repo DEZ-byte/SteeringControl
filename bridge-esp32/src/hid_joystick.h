@@ -3,8 +3,8 @@
 // The USB side: a plain HID joystick with 16-bit axes.
 //
 // No driver, no installer, no signed kernel component. Windows, Linux, macOS and
-// a PlayStation all bind a generic HID joystick out of the box, which is the
-// entire reason this bridge exists.
+// a PlayStation all bind a generic HID joystick out of the box, which is why this
+// bridge exists.
 
 #include <stdint.h>
 
@@ -15,10 +15,9 @@ namespace osteer {
 #pragma pack(push, 1)
 /// Exactly what goes out on the wire to the host, 12 bytes.
 ///
-/// Axis ranges are deliberately not the same: X is signed because a steering
-/// wheel has a centre, and the pedals are unsigned because they have a rest
-/// position at one end. Squeezing pedals into a signed axis is how you end up
-/// with a throttle that idles at half.
+/// Axis ranges differ: X is signed because a steering wheel has a center, and
+/// the pedals are unsigned because they have a rest position at one end. Pedals
+/// mapped onto a signed axis give a throttle that idles at half.
 struct JoyReport {
     int16_t x;         // steering, -32767..32767
     uint16_t y;        // throttle, 0..65535
@@ -41,7 +40,7 @@ public:
     ///
     /// A report that cannot leave in a couple of milliseconds is already stale and
     /// the next one is 8 ms behind it, so a failure here is dropped rather than
-    /// queued. Queuing stale steering is how input latency turns into input lag.
+    /// queued. Queued reports would delay every newer report behind them.
     bool send(const JoyReport& report, uint32_t timeoutMs);
 
     bool ready() const;

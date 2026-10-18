@@ -2,8 +2,8 @@ namespace OpenSteer.Core;
 
 /// <summary>
 /// Plain 64-bit counters written by the hot thread and read by the 1 Hz stats
-/// thread. Deliberately not Interlocked: on x64 an aligned 64-bit load or store is
-/// atomic, the stats are approximate by design, and keeping the hot path free of
+/// thread. Not Interlocked: on x64 an aligned 64-bit load or store is atomic, the
+/// stats are approximate anyway, and keeping the hot path free of
 /// lock-prefixed instructions matters more than a perfectly consistent snapshot.
 /// </summary>
 public sealed class HotCounters

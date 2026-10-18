@@ -1,10 +1,11 @@
 import XCTest
 @testable import OpenSteerCore
 
+/// Uplink encoding against the golden hex vectors, byte for byte.
 final class UplinkCodecTests: XCTestCase {
     private let golden = GoldenVectors.shared
 
-    /// Byte-exact equality against the fixture. There is deliberately no
+    /// Byte-exact equality against the fixture. There is no
     /// `MemoryLayout<UplinkState>.size == 32` assertion anywhere: Swift pads the
     /// `UInt64` field to an 8-byte boundary and makes the struct 36 bytes. The
     /// hex below is the layout proof, not the type.
@@ -50,8 +51,7 @@ final class UplinkCodecTests: XCTestCase {
     }
 
     /// The magic is stored little-endian, so it reads "RTSO" on the wire. Getting
-    /// this backwards is the classic way to spend an afternoon on a link that
-    /// looks connected and drops every packet.
+    /// this backwards gives a link that looks connected and drops every packet.
     func testMagicWireOrder() {
         let encoded = UplinkCodec.encode(UplinkState())
         XCTAssertEqual(Array(encoded[0..<4]), [0x52, 0x54, 0x53, 0x4F])
@@ -86,7 +86,7 @@ final class UplinkCodecTests: XCTestCase {
                        [0xFF, 0x7F])
     }
 
-    /// Encoding into a slot of a shared region must not spill into its neighbours.
+    /// Encoding into a slot of a shared region must not spill into its neighbors.
     func testEncodeStaysInsideItsSlot() {
         var region = [UInt8](repeating: 0xAA, count: UplinkCodec.size * 3)
         let state = UplinkState(sequence: 7, steer: -1234, throttle: 65535,

@@ -1,24 +1,24 @@
 """Drive the wheel from the keyboard, for testing the PC half without a phone.
 
 Sends the same 32-byte uplink packets the phone sends, at the same 120 Hz, so the
-daemon cannot tell the difference. That is the point: it exercises the real
-validator, the real watchdog and the real virtual controller.
+daemon cannot tell the difference and the run exercises the real validator, the
+real watchdog and the real virtual controller.
 
     A / D     steer left and right, ramped
     W         throttle
     S         brake
     Space     handbrake
     E / Q     shift up and down
-    R         re-centre the steering at once
+    R         re-center the steering at once
     Esc       stop
 
 Keys are read with GetAsyncKeyState rather than from the terminal. Terminal input
-only arrives while the terminal has focus, and the whole point here is to drive a
-game that has taken the focus for itself. It also reports keys that are HELD,
-where a terminal reports keys that were TYPED, and a throttle needs the former.
+only arrives while the terminal has focus, and the purpose here is to drive a game
+that has taken the focus for itself. GetAsyncKeyState also reports keys that are
+held, where a terminal reports keys that were typed, and a throttle needs the former.
 
-The consequence is that this reads your keyboard globally while it runs. Whatever
-window is in front, W is throttle.
+As a result, this reads your keyboard globally while it runs: whatever window is in
+front, W is throttle.
 
     python tools/drive_keys.py
 
@@ -72,10 +72,10 @@ def round_half_away(v: float) -> int:
 class Axis:
     """One ramped control value in 0..1 or -1..1.
 
-    Ramping rather than jumping, because a keyboard has no middle. Full lock the
-    instant a key goes down would be unusable in a car and would also hide the
-    thing under test: the daemon's job is to pass a smoothly changing axis
-    through, and a square wave would not show whether it does.
+    The value ramps rather than jumps, because a keyboard has no middle. Full lock
+    the instant a key goes down would be unusable in a car and would also hide
+    what is under test: the daemon has to pass a smoothly changing axis through,
+    and a square wave would not show whether it does.
     """
 
     def __init__(self, rise_s: float, fall_s: float, bipolar: bool) -> None:
@@ -106,7 +106,7 @@ def read_controls(steer: Axis, throttle: Axis, brake: Axis, dt: float,
     left = key_down(VK["A"])
     right = key_down(VK["D"])
 
-    # Both keys held cancel out and the wheel centres, which is what a driver
+    # Both keys held cancel out and the wheel centers, which is what a driver
     # would expect and is also how the phone behaves when it is put down.
     target = (1.0 if right else 0.0) - (1.0 if left else 0.0)
     steer.step(target, dt)
@@ -184,12 +184,12 @@ def selftest() -> int:
     if not (0.19 <= elapsed <= 0.22):
         failures.append(f"fall took {elapsed:.3f} s, expected about 0.20")
 
-    # Holding both steering keys must centre, not pick one.
+    # Holding both steering keys must center, not pick one.
     axis = Axis(0.4, 0.25, bipolar=True)
     axis.step(1.0, 0.4)
     axis.step(0.0, 1.0)
     if abs(axis.value) > 1e-9:
-        failures.append(f"both keys held did not centre: {axis.value}")
+        failures.append(f"both keys held did not center: {axis.value}")
 
     for f in failures:
         print("FAIL " + f)
@@ -203,9 +203,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--port", type=int, default=9999)
     ap.add_argument("--rate", type=float, default=120.0, help="packets per second")
     ap.add_argument("--steer-rise", type=float, default=0.45,
-                    help="seconds from centre to full lock")
+                    help="seconds from center to full lock")
     ap.add_argument("--steer-centre", type=float, default=0.30,
-                    help="seconds to centre when no key is held")
+                    help="seconds to center when no key is held")
     ap.add_argument("--pedal-rise", type=float, default=0.25, help="seconds to full pedal")
     ap.add_argument("--pedal-fall", type=float, default=0.15, help="seconds to release")
     ap.add_argument("--arm-delay", type=float, default=5.0,
@@ -236,17 +236,17 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"OpenSteer keyboard wheel  ->  {args.host}:{args.port}  at {args.rate:g} Hz")
     print("  A / D steer    W throttle    S brake    Space handbrake")
-    print("  E / Q shift up and down      R re-centre     Esc stop")
+    print("  E / Q shift up and down      R re-center     Esc stop")
     print()
     print("Keys are read globally, so whatever window is in front, W is throttle.")
 
     if args.no_buttons:
         print("Buttons are disabled for this run.")
     elif args.arm_delay > 0:
-        # Learned the hard way. A virtual pad's buttons are wired to Windows UI
-        # navigation when no game has the focus, so a handbrake press on the
-        # desktop clicks things. The axes are harmless and start at once; the
-        # buttons wait until you have had time to switch to the game.
+        # A virtual pad's buttons are wired to Windows UI navigation when no game
+        # has the focus, so a handbrake press on the desktop clicks things. The
+        # axes are harmless and start at once; the buttons wait until you have had
+        # time to switch to the game.
         print(f"Buttons go live in {args.arm_delay:g} s. Switch to the game now.")
 
     print()
@@ -308,8 +308,8 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         # Release everything explicitly rather than leaving the watchdog to time
         # it out. The daemon would coast to neutral on its own after 250 ms, but
-        # a stuck throttle for a quarter of a second is a quarter of a second of
-        # a car accelerating with nobody driving it.
+        # until then a stuck throttle keeps the car accelerating with nobody
+        # driving it.
         # Each copy takes the next sequence number. Five copies of one number would
         # be one frame and four duplicates to the daemon.
         for i in range(5):

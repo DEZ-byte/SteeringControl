@@ -9,6 +9,6 @@
 //
 //   python -c "import secrets; print(secrets.token_urlsafe(18))"
 //
-// The value here is left empty on purpose. A verbatim copy fails the build (the
-// static_assert in wifi_ap.cpp), so no two bridges ever share a published default.
+// The value here is empty so that a verbatim copy fails the build (the
+// static_assert in wifi_ap.cpp) and no two bridges share a published default.
 #define OSTEER_AP_PASSWORD ""

@@ -7,8 +7,8 @@ import OpenSteerCore
 /// The motion loop runs at 120 Hz on `ioQueue`, SwiftUI runs on the main actor,
 /// and haptics run on a third queue. Each slot holds a whole value type behind an
 /// unfair lock, and every reader copies the struct out in one acquisition rather
-/// than reading fields one at a time. Reading field by field is how you end up
-/// drawing a wheel angle from one sample next to a sequence number from the next.
+/// than reading fields one at a time. Reading field by field could pair a wheel
+/// angle from one sample with a sequence number from the next.
 ///
 /// `OSAllocatedUnfairLock` rather than a `DispatchQueue`: these critical sections
 /// are a handful of machine words long, so a queue hop would cost far more than
@@ -71,8 +71,8 @@ final class SnapshotStore: Sendable {
 
     /// Reads the pedals and takes the one-shot flags in the same acquisition.
     ///
-    /// Splitting this into a read and a separate clear is how a paddle tap gets
-    /// counted twice, or lost between the two calls.
+    /// Splitting this into a read and a separate clear could count a paddle tap
+    /// twice, or lose it between the two calls.
     func takeControls() -> ControlInputs {
         controls.withLock { current in
             let taken = current

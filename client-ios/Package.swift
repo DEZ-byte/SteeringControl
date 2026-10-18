@@ -1,10 +1,10 @@
 // swift-tools-version:5.9
 import PackageDescription
 
-// OpenSteerCore is deliberately Foundation-only: no CoreMotion, no Network, no
-// UIKit. That is what lets the whole steering and wire-format contract be tested
-// with `swift test` on any platform, including a CI box with no Apple frameworks,
-// and it keeps the app target free to be rebuilt without touching the maths.
+// OpenSteerCore is Foundation-only: no CoreMotion, no Network, no UIKit. That
+// lets the whole steering and wire-format contract be tested with `swift test`
+// on any platform, including a CI box with no Apple frameworks, and it keeps the
+// app target free to be rebuilt without touching the math.
 let package = Package(
     name: "OpenSteerCore",
     platforms: [

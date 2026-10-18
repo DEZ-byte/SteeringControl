@@ -6,9 +6,8 @@ namespace OpenSteer.Server.Telemetry;
 /// A drift-free periodic wait built on a high-resolution waitable timer.
 /// </summary>
 /// <remarks>
-/// Deliberately not PeriodicTimer or Thread.Sleep. Both quantise to whole
-/// milliseconds, so a 60 Hz cadence of 16.667 ms would land on 16 or 17 and walk
-/// away from the grid. This schedules each tick against an absolute timeline
+/// Not PeriodicTimer or Thread.Sleep: both quantize to whole milliseconds, so a
+/// 60 Hz cadence of 16.667 ms would land on 16 or 17 and walk away from the grid. This schedules each tick against an absolute timeline
 /// instead, so a late wake-up does not push every later tick along with it.
 /// </remarks>
 public sealed class HighResTimer : IDisposable

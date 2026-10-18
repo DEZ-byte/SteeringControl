@@ -5,17 +5,16 @@ using OpenSteer.Server.Interop;
 namespace OpenSteer.Server.Output;
 
 /// <summary>
-/// Mode A: an emulated Xbox 360 pad on ViGEmBus. The default backend, and the only
-/// one required.
+/// Mode A: an emulated Xbox 360 pad on ViGEmBus. The default backend.
 /// </summary>
 /// <remarks>
 /// The pedals lose eight bits here because XInput triggers are bytes. That is the
 /// XInput contract, not a shortcut, and it is the reason Mode B exists for people
 /// who want load-cell resolution. Steering keeps its full 16 bits on the left stick.
 /// <para>
-/// Also worth knowing before reading joy.cpl: DirectInput combines the two triggers
+/// When reading joy.cpl, note that DirectInput combines the two triggers
 /// onto a single axis, one pushing it positive and the other negative. So throttle
-/// and brake move the same Z axis in opposite directions there, and a centred Z means
+/// and brake move the same Z axis in opposite directions there, and a centered Z means
 /// both are released. Independent trigger values are only visible through XInput.
 /// </para>
 /// </remarks>
@@ -91,10 +90,9 @@ public sealed class ViGEmX360Sink : IOutputSink
     /// <remarks>
     /// Measured over a 150 second soak: without this, the first one-second window
     /// showed a receive-to-inject p99 of 3200 us while all 149 later windows sat at
-    /// or under 300 us. The cost lands on the very first input the driver ever sees,
-    /// which is the worst place to spend it. Paying it here takes about 25 ms of
-    /// startup and gets both the driver IOCTL path and the tiered JIT hot before
-    /// anyone is steering.
+    /// or under 300 us. The cost lands on the first input the driver sees. Paying it
+    /// here takes about 25 ms of startup and gets both the driver IOCTL path and the
+    /// tiered JIT hot before anyone is steering.
     /// </remarks>
     private void WarmUp()
     {

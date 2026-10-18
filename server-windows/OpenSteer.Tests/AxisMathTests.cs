@@ -24,8 +24,8 @@ public class AxisMathTests
     [InlineData(65535, 255)]
     public void XInputTriggersAreEightBit(int value, int expected)
     {
-        // Mode A loses 8 bits on the pedals by design: that is the XInput contract,
-        // and it is exactly why Mode B exists for people who want load-cell feel.
+        // Mode A loses 8 bits on the pedals: that is the XInput contract, and it is
+        // why Mode B exists for people who want load-cell feel.
         Assert.Equal((byte)expected, AxisMath.ToXInputTrigger((ushort)value));
     }
 

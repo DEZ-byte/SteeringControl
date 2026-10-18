@@ -22,10 +22,10 @@ public enum SequenceVerdict : byte
 }
 
 /// <summary>
-/// Steps 1-4, 6 and 7 of receive validation. Deliberately socket-free: step 5, the
-/// lease/endpoint check, is socket-typed and therefore lives in the Server project.
-/// Keeping this class pure is what lets the whole accept/reject matrix be tested
-/// with no network, no driver and no Win32.
+/// Steps 1-4, 6 and 7 of Receive validation in docs/ARCHITECTURE.md. Socket-free:
+/// step 5, the lease/endpoint check, is socket-typed and therefore lives in the
+/// Server project. Keeping this class pure lets the whole accept/reject matrix be
+/// tested with no network, no driver and no Win32.
 /// </summary>
 public sealed class PacketValidator
 {
@@ -48,7 +48,7 @@ public sealed class PacketValidator
             return Verdict.BadMagic;
         }
 
-        // 3. checksum BEFORE anything reads the sequence number, so a corrupted
+        // 3. checksum before anything reads the sequence number, so a corrupted
         //    sequence can never poison the reseed state.
         uint want = BinaryPrimitives.ReadUInt32LittleEndian(frame.Slice(28, 4));
         if (Xxh32.Hash28(frame) != want)
@@ -104,8 +104,8 @@ public sealed class PacketValidator
         if (delta < 0)
         {
             // Out of order. Packets carry absolute state, so an older one is simply
-            // discarded: there is no reassembly and no retransmit. Loss is the
-            // watchdog's problem, not the protocol's.
+            // discarded: there is no reassembly and no retransmit. Loss is handled
+            // by the watchdog, not the protocol.
             return SequenceVerdict.Stale;
         }
 

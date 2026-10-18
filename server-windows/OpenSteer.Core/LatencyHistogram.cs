@@ -3,8 +3,8 @@ namespace OpenSteer.Core;
 /// <summary>
 /// Fixed 1024-bucket histogram, 50 microseconds per bucket, spanning 0 to 51.2 ms.
 /// Preallocated so recording a sample on the hot path allocates nothing. Samples
-/// beyond the span land in the top bucket, which is what makes an overflow visible
-/// rather than silently clamping a percentile.
+/// beyond the span land in the top bucket, which makes an overflow visible rather
+/// than silently clamping a percentile.
 /// </summary>
 public sealed class LatencyHistogram
 {

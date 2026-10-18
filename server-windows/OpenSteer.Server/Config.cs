@@ -5,7 +5,7 @@ namespace OpenSteer.Server;
 
 public enum OutputMode
 {
-    /// <summary>ViGEmBus Xbox 360. The default and the only required backend.</summary>
+    /// <summary>ViGEmBus Xbox 360. The default backend.</summary>
     A,
 
     /// <summary>vJoy DirectInput. Optional and not implemented yet.</summary>
@@ -38,7 +38,7 @@ public sealed class HostConfig
     public bool EchoRtt { get; private set; }
 
     /// <summary>Wheel-slip value treated as 100%. AC reports raw scrub, so the
-    /// normalisation point is a tuning knob rather than a constant.</summary>
+    /// normalization point is a tuning knob rather than a constant.</summary>
     public float SlipFull { get; private set; } = 1.0f;
 
     public static bool TryParse(string[] args, out HostConfig config, out string error)

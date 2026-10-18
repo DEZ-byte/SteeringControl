@@ -30,7 +30,7 @@ public enum ShmRead : byte
     Unavailable,
 }
 
-/// <summary>One physics sample, already normalised for the wire.</summary>
+/// <summary>One physics sample, already normalized for the wire.</summary>
 public readonly record struct AcTelemetry(
     ushort EngineRpm,
     bool AbsActive,
@@ -153,8 +153,8 @@ public sealed class AcSharedMemoryReader : IDisposable
 
         if (!consistent)
         {
-            // The page is being rewritten faster than we can read it. Publishing a
-            // torn sample is never right. Only a page already known to be live can
+            // The page is being rewritten faster than we can read it, and a torn
+            // sample is never published. Only a page already known to be live can
             // call this torn rather than unavailable.
             return State == ShmState.Attached ? ShmRead.Torn : ShmRead.Unavailable;
         }
@@ -207,7 +207,7 @@ public sealed class AcSharedMemoryReader : IDisposable
                 return;
             }
 
-            // Deliberately does NOT reset the counter's memory in _liveness.
+            // Does not reset the counter's memory in _liveness.
             //
             // A paused game leaves its counter frozen. Forgetting the counter here
             // made the very next read see that frozen value as brand new, so the
@@ -215,7 +215,7 @@ public sealed class AcSharedMemoryReader : IDisposable
             // dropped, re-probed and declared Attached again: a loop that rumbled
             // the phone with a fixed engine speed for as long as the driver sat in
             // a menu. Carrying the counter across means a frozen page stays
-            // recognisably frozen however many times it is re-opened.
+            // recognizably frozen however many times it is re-opened.
             //
             // The state is not set here either. Whether this page is live is
             // decided by whether its counter moves, which only Read can see.

@@ -3,7 +3,7 @@
 When the car will not move there are four links in the chain and the symptom looks
 the same at every one of them: the keyboard tool, the network, the daemon, or the
 game's own binding. This reads the pad the way Windows reports it, which sits
-exactly between the daemon and the game, so whichever side is broken it says which.
+between the daemon and the game, so it can tell which side is broken.
 
     axes move  ->  keyboard, network and daemon are all fine, the game is the problem
     axes still ->  the break is before the pad, so look at the keyboard tool

@@ -2,9 +2,9 @@ namespace OpenSteer.Core;
 
 /// <summary>
 /// Pure axis arithmetic shared by both output backends and by the watchdog slews.
-/// Lives in Core so it is unit-testable with no driver, no socket and no Win32 -
-/// which is what lets the Mode B scaling be proven on a machine where Memory
-/// Integrity refuses to load the vJoy driver.
+/// Lives in Core so it is unit-testable with no driver, no socket and no Win32,
+/// which lets the Mode B scaling be tested on a machine where Memory Integrity
+/// refuses to load the vJoy driver.
 /// </summary>
 public static class AxisMath
 {
@@ -15,7 +15,7 @@ public static class AxisMath
     /// <summary>Mode A: XInput triggers are 8-bit by design.</summary>
     public static byte ToXInputTrigger(ushort value) => (byte)(value >> 8);
 
-    /// <summary>Steer as an unsigned axis value for vJoy (centre becomes 32768).</summary>
+    /// <summary>Steer as an unsigned axis value for vJoy (center becomes 32768).</summary>
     public static ushort SteerToUnsigned(short steer) => (ushort)(steer + 32768);
 
     /// <summary>

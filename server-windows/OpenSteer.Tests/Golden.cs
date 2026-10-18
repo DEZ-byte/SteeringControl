@@ -5,8 +5,8 @@ namespace OpenSteer.Tests;
 /// <summary>
 /// Loads tools/golden_vectors.json, the cross-language conformance fixture that the
 /// Python generator computes by execution. The same file is consumed by the Swift
-/// XCTest target and by the ESP32 host-side test, so agreement here is agreement
-/// across all four implementations.
+/// XCTest target and by the ESP32 host-side test, so all four implementations are
+/// checked against one fixture.
 /// </summary>
 public static class Golden
 {

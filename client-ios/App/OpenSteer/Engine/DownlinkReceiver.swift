@@ -6,8 +6,7 @@ import OpenSteerCore
 ///
 /// One connected UDP flow carries both directions. The daemon replies from the
 /// port it was sent to, so the phone needs no listener, no second socket and no
-/// inbound firewall rule. That was proved end to end before a line of this
-/// was written.
+/// inbound firewall rule.
 ///
 /// Confined to `ioQueue`.
 final class DownlinkReceiver: @unchecked Sendable {

@@ -112,12 +112,12 @@ bool startAccessPoint() {
     }
 
     // Power saving parks the radio between beacons, which on a 120 Hz stream
-    // shows up as tens of milliseconds of steering arriving in a clump. This is
-    // the single most important line in the file.
+    // shows up as tens of milliseconds of steering arriving in a clump. No other
+    // setting in this file affects latency as much.
     WiFi.setSleep(false);
 
     // HT20. The wider channel buys throughput this link will never use, and costs
-    // more airtime lost to interference from every neighbouring network.
+    // more airtime lost to interference from every neighboring network.
     esp_wifi_set_bandwidth(WIFI_IF_AP, WIFI_BW_HT20);
 
     return true;
@@ -156,7 +156,7 @@ uint8_t apChannel() {
 
 bool setApChannel(uint8_t channel) {
     // 1, 6 and 11 are the only three 2.4 GHz channels that do not overlap each
-    // other. Anything else guarantees interference with a neighbour.
+    // other. Anything else guarantees interference with a neighbor.
     if (!cfg::isValidApChannel(channel)) {
         return false;
     }

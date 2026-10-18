@@ -1,13 +1,14 @@
 """Mock phone: streams OpenSteer uplink frames at a precise rate.
 
 Drives the Windows daemon without an iPhone, so the whole host can be verified
-before any Swift exists. Also injects malformed frames and Wi-Fi style bursts, to
-prove the daemon rejects and coalesces rather than merely surviving.
+on its own. Also injects malformed frames and Wi-Fi style bursts, to
+check that the daemon rejects and coalesces them, not only that it keeps running.
 
 Buttons are off unless asked for. With no game focused, the virtual pad's A/B
 buttons navigate the Windows desktop, so pulses are opt-in (--buttons-hz), and no
-button, pulsed or held with --hold btn=..., goes live before --arm-delay seconds. Every control is released on the way out,
-Ctrl+C included, rather than left for the daemon's 250 ms watchdog.
+button, pulsed or held with --hold btn=..., goes live before --arm-delay seconds.
+Every control is released on the way out, Ctrl+C included, rather than left for
+the daemon's 250 ms watchdog.
 
 Examples:
     python tools/feed_joycpl.py --duration 30
@@ -72,7 +73,7 @@ def parse_faults(text: str | None) -> dict[str, int]:
 
 
 def make_fault(kind: str, seq: int, last_seq: int, ts: int) -> bytes:
-    """Build one deliberately broken frame. Exactly one rule is violated per frame,
+    """Build one broken frame. Exactly one rule is violated per frame,
     so each daemon counter can be attributed unambiguously."""
     base = dict(steer=FAULT_SENTINEL, throttle=0, brake=0, clutch=0, buttons=0, ts_ns=ts)
 
@@ -302,8 +303,8 @@ def main(argv: list[str] | None = None) -> int:
                 ts = time.perf_counter_ns()
 
                 # A burst is the stimulus for the burst-drain test: several frames
-                # hit the socket with no gap, exactly as a Wi-Fi driver releases a
-                # queued bunch. Only the last one should ever reach the wheel.
+                # hit the socket with no gap, as a Wi-Fi driver releases a queued
+                # bunch. Only the last one should reach the wheel.
                 if next_burst is not None and t >= next_burst:
                     next_burst += args.burst_every
                     for k in range(args.burst):

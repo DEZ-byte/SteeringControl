@@ -1,7 +1,7 @@
 """Can a rejected packet steal the wheel from the driver?
 
 The daemon drains a burst of datagrams in one pass and publishes the lease once at
-the end. Publishing the address of the LAST datagram it touched rather than the one
+the end. Publishing the address of the last datagram it touched rather than the one
 it accepted hands the wheel to whoever sent the final datagram of the burst. Every
 real packet after that is counted as other_src and dropped, and the force-feedback
 downlink goes to a machine that is not driving.
@@ -23,7 +23,7 @@ queue always has strays in it, while the driver's good packets arrive at 120 Hz 
 land in the middle of a drain pass. The good packet claims the lease; a stray later
 in the same pass overwrites the address; the lease is published for the stray.
 
-That is not a contrived scenario. It is what a noisy shared network looks like.
+A noisy shared network produces this traffic pattern.
 
 Safe to run: the daemon starts in --mode none, so no virtual controller exists and
 nothing can reach the desktop.
@@ -192,7 +192,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"driver port {driver_port}, stray port {stray_port}")
 
         # Strays fail the magic check, so they land in bad_magic, never other_src.
-        # A nonzero other_src therefore means the DRIVER's own valid packets were
+        # A nonzero other_src therefore means the driver's own valid packets were
         # turned away, which only happens if the lease moved.
         if reproduced:
             if not args.json:

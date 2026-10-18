@@ -41,8 +41,8 @@ public struct HapticInputs: Sendable, Equatable {
     public var shiftPressed: Bool = false
     public var recenterRequested: Bool = false
     /// Set while the link is Degraded or Disconnected. Rumble goes to zero and
-    /// transients stop, because a buzz that no longer tracks the car is worse than
-    /// no buzz at all.
+    /// transients stop, because a buzz that no longer tracks the car misleads the
+    /// driver.
     public var muted: Bool = false
 
     public init() {}
@@ -69,13 +69,13 @@ public struct HapticPolicy: Sendable {
     /// than about 40 ms blur into one anyway, so the extra ones are wasted power.
     public static let perPlayerMinimumGapMs: Double = 40
 
-    /// The Taptic Engine physically cannot keep up past roughly this rate, and
-    /// pushing it turns distinct events into mush.
+    /// The Taptic Engine cannot keep up past roughly this rate; above it, distinct
+    /// events blur together.
     public static let globalTransientsPerSecond = 25
 
     public static let lockupThreshold = 0.80
     /// Hysteresis. Without the lower rearm point a brake hovering at the
-    /// threshold would machine-gun the lockup thud.
+    /// threshold would fire the lockup thud over and over.
     public static let lockupRearm = 0.70
 
     public static let rumbleMinimumRpm: UInt16 = 300
@@ -126,7 +126,7 @@ public struct HapticPolicy: Sendable {
                               inputs: HapticInputs) -> HapticOutput {
         var output = HapticOutput()
 
-        // Recentre is a direct answer to a button the driver just pressed, so it
+        // Recenter is a direct answer to a button the driver just pressed, so it
         // is confirmed even while muted and it ignores the rate cap.
         if inputs.recenterRequested {
             output.transients.append(.recenter)
@@ -140,7 +140,7 @@ public struct HapticPolicy: Sendable {
         }
 
         // Collected in priority order: lockup first, so when the cap bites it is
-        // the tyre-chatter noise that gets dropped and never the one event that
+        // the tire-chatter noise that gets dropped and never the one event that
         // tells the driver the front wheels have stopped turning.
         var candidates: [HapticTransient] = []
 

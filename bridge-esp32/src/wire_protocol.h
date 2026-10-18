@@ -2,10 +2,10 @@
 
 // The OpenSteer wire format, byte for byte.
 //
-// Deliberately free of Arduino, ESP-IDF and lwIP headers so it compiles for a
-// host test as readily as for the chip. The static assertions below are the whole
-// point: they turn a silent layout change into a build failure rather than into a
-// wheel that steers sideways on one platform only.
+// Free of Arduino, ESP-IDF and lwIP headers so it compiles for a host test as
+// readily as for the chip. The static assertions below turn a silent layout
+// change into a build failure rather than into a wheel that steers wrongly on one
+// platform only.
 
 #include <stddef.h>
 #include <stdint.h>
@@ -75,8 +75,8 @@ static_assert(__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__,
 /// Copies 32 bytes into a packet.
 ///
 /// `memcpy` rather than a cast. Taking the address of a member of a packed struct
-/// is undefined behaviour, and a pointer cast onto an arbitrary receive buffer is
-/// the same mistake wearing a different hat. Xtensa LX7 handles unaligned loads in
+/// is undefined behavior, and a pointer cast onto an arbitrary receive buffer is
+/// the same mistake in another form. Xtensa LX7 handles unaligned loads in
 /// hardware, so this costs nothing here, but the header also has to be correct on
 /// a host where that is not true.
 inline void readUplink(const uint8_t* src, UplinkPacket& out) {

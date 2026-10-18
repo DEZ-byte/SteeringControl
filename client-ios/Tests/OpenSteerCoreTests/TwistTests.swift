@@ -1,7 +1,7 @@
 import XCTest
 @testable import OpenSteerCore
 
-/// Invariant I1.
+/// The twist angle against the golden vectors. Invariant I1.
 final class TwistTests: XCTestCase {
     private let golden = GoldenVectors.shared
 
@@ -38,11 +38,12 @@ final class TwistTests: XCTestCase {
     /// The banned method, restated as a test.
     ///
     /// `atan2(gravity.y, gravity.x)` looks identical to the real thing on a flat
-    /// desk. TV3 is a phone reclined 85 degrees and turned 10 degrees: the twist
-    /// says 10.000, the projection says 7.706. TV3b is the same recline with no
-    /// turn at all: the twist says 0, the projection invents 0.870. A wheel built
-    /// on the projection would be 23 per cent short at the angles that matter and
-    /// would wander when the driver only shifted in their seat.
+    /// desk. TV3 is a phone reclined 85 degrees, turned 10 degrees and swung 20
+    /// degrees sideways: the twist says 10.000, the projection says 7.706. TV3b is
+    /// the same recline with a 10 degree swing and no turn: the twist says 0, the
+    /// projection reads 0.870. A wheel built on the projection would read short
+    /// whenever the phone swings while turning, and would steer when the driver
+    /// only shifted in their seat.
     func testNaiveProjectionDisagreesWhereItMatters() {
         for vector in golden.twist where vector.name.hasPrefix("TV3") {
             XCTAssertGreaterThan(abs(vector.thetaDeg - vector.naiveProjectionDeg), 0.5,
@@ -56,7 +57,7 @@ final class TwistTests: XCTestCase {
         var extractor = TwistExtractor()
         let theta = extractor.step(reference: quat(tv3.qRef), current: quat(tv3.qCur))
         XCTAssertGreaterThanOrEqual(theta, 9.99,
-                                    "a real 10 degree turn must not read as 7.7")
+                                    "a 10 degree turn with a 20 degree swing must not read as 7.7")
     }
 
     /// Tilting the phone without turning it is not steering.
@@ -89,7 +90,7 @@ final class TwistTests: XCTestCase {
         }
     }
 
-    /// q and −q are the same rotation. If the sign is not canonicalised, the
+    /// q and −q are the same rotation. If the sign is not canonicalized, the
     /// angle jumps by a full turn as w crosses zero and the unwrapper faithfully
     /// records a 360 degree spin that never happened.
     func testSignFlipIsInvisible() {
@@ -106,9 +107,8 @@ final class TwistTests: XCTestCase {
         }
     }
 
-    /// Near a 180 degree swing the twist is genuinely undefined. Holding the last
-    /// angle is the only safe answer; snapping to zero would yank the wheel
-    /// straight at the worst possible moment.
+    /// Near a 180 degree swing the twist is undefined. The last angle is held,
+    /// because snapping to zero would jump the wheel to center.
     func testDegenerateSwingHoldsTheLastAngle() {
         var extractor = TwistExtractor()
         let held = extractor.step(reference: .identity, current: Quat.rz(45))
@@ -121,7 +121,7 @@ final class TwistTests: XCTestCase {
                        held, accuracy: 1e-12)
     }
 
-    /// Argument order is load-bearing: the other order measures the world-frame Z
+    /// Argument order matters: the other order measures the world-frame Z
     /// component, which shrinks by roughly cos(tilt).
     func testReversedArgumentOrderIsWrongAtHighTilt() {
         let qRef = Quat.rx(85)

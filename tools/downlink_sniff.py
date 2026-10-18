@@ -1,8 +1,8 @@
 """Stand-in for the phone: streams uplink and checks the FFB frames that come back.
 
-One socket does both directions, exactly as the iOS client will. That is the point of
-the test - it proves the daemon replies from the port the phone sent to, so a single
-connected flow is enough and no listener or extra firewall rule is needed.
+One socket does both directions, as in the iOS client. This proves the daemon replies
+from the port the phone sent to, so a single connected flow is enough and no listener
+or extra firewall rule is needed.
 
 Run:  python tools/downlink_sniff.py --duration 10
 """
@@ -103,7 +103,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--expect-no-gap-ms", type=float, default=None,
                     help="require every downlink gap to stay under this")
     ap.add_argument("--expect-zero", action="store_true",
-                    help="pass only if NO downlink frames arrive")
+                    help="pass only if no downlink frames arrive")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args(argv)
@@ -177,8 +177,8 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.rtt and reserved:
             # Both halves of this subtraction come from this machine's own clock.
-            # The daemon only echoes the value back; it never interprets it. That is
-            # what makes the measurement valid across two clocks with no shared epoch.
+            # The daemon only echoes the value back and never interprets it, so the
+            # measurement is valid across two clocks with no shared epoch.
             rtt = (now_ns & 0xFFFFFFFF) - reserved
             if rtt < 0:
                 rtt += 1 << 32
@@ -187,7 +187,7 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.vanish and len(arrivals) == 30:
             sock.close()
-            emit({"ev": "VANISH", "note": "socket closed mid-stream on purpose"})
+            emit({"ev": "VANISH", "note": "socket closed mid-stream by --vanish"})
             break
 
     if feeder:
@@ -217,11 +217,10 @@ def main(argv: list[str] | None = None) -> int:
     if gaps:
         result["ia_p50_us"] = ht.pct(gaps, 0.50) // 1000
         result["ia_p99_us"] = ht.pct(gaps, 0.99) // 1000
-        # The largest gap, reported separately on purpose. A single outage shows up
-        # as exactly one outlier, and a p99 over several hundred samples cannot see
-        # one outlier at all - it reports a perfectly normal gap and the test passes
-        # while the daemon streamed straight through an outage it should have stopped
-        # for.
+        # The largest gap is reported separately because a single outage shows up as
+        # one outlier, and a p99 over several hundred samples does not see one
+        # outlier. It reports a normal gap, and the test would pass even though the
+        # daemon streamed through an outage it should have stopped for.
         result["ia_max_us"] = max(gaps) // 1000
     if rpms:
         result["rpm_min"] = min(rpms)

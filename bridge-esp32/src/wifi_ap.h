@@ -2,9 +2,9 @@
 
 // The access point the phone joins.
 //
-// The bridge makes its own network rather than joining an existing one. That is
-// the whole point of this pathway: no router, no DHCP lease to chase, no address
-// to type, and one radio hop instead of two.
+// The bridge makes its own network rather than joining an existing one, so there
+// is no router, no DHCP lease to chase, no address to type, and one radio hop
+// instead of two.
 
 #include <stdint.h>
 

@@ -7,12 +7,12 @@ namespace OpenSteer.Core;
 /// Used on Assetto Corsa's physics packet counter, which a paused game leaves
 /// frozen. Kept free of shared memory so it can be tested (invariant I16).
 /// <para>
-/// There is deliberately no way to reset it. The reader closes and re-opens the
-/// page once a second while it is frozen, and forgetting the counter on each
-/// re-open made the frozen value look brand new every time: live for the length
-/// of the window, stale, re-opened, live again, a two-second loop that rumbled the
-/// phone at a fixed engine speed for as long as the driver sat in a menu. Keeping
-/// the memory across re-opens is what keeps a frozen page recognisably frozen.
+/// It has no reset method. The reader closes and re-opens the page once a second
+/// while it is frozen, and forgetting the counter on each re-open made the frozen
+/// value look brand new every time: live for the length of the window, stale,
+/// re-opened, live again, a two-second loop that rumbled the phone at a fixed
+/// engine speed for as long as the driver sat in a menu. Keeping the memory across
+/// re-opens keeps a frozen page recognizably frozen.
 /// </para>
 /// </remarks>
 public sealed class CounterLiveness

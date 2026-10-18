@@ -86,7 +86,7 @@ public sealed class PassLease
                              bool failSafe)
     {
         // longGap and failSafe describe the pass, not the packet, so they stay true
-        // for every packet in it. They earn one reseed, not one each.
+        // for every packet in it. They trigger one reseed per pass, not one per packet.
         bool reseed = verdict == LeaseVerdict.Claim
                    || !hasSequence
                    || (!_reseeded && (longGap || failSafe));

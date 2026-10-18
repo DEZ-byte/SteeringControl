@@ -3,9 +3,8 @@
 Mirrors server-windows/OpenSteer.Core/Protocol/*.cs and
 client-ios/Sources/OpenSteerCore/UplinkCodec.swift byte for byte.
 
-Stdlib only. No third-party packages (xxhash is deliberately NOT used; the
-reference implementation below is self-checking against the published XXH32
-test vectors in golden_vectors.py).
+Stdlib only, so the xxhash package is not used. The reference implementation
+below is checked against the published XXH32 test vectors in golden_vectors.py.
 """
 
 from __future__ import annotations
@@ -154,8 +153,9 @@ class Verdict(Enum):
 
 
 def validate_uplink(buf: bytes) -> tuple[Verdict, tuple | None]:
-    """The daemon's receive validation steps 1-4, in the same order and
-    with the same one-counter-per-datagram rule."""
+    """The daemon's receive validation steps 1-4 (Receive validation in
+    docs/ARCHITECTURE.md), in the same order and with the same
+    one-counter-per-datagram rule."""
     if len(buf) != UPLINK_SIZE:
         return Verdict.BAD_LEN, None
     fields = UPLINK.unpack_from(buf, 0)

@@ -1,6 +1,8 @@
 import XCTest
 @testable import OpenSteerCore
 
+/// Downlink decode and encode against the golden vectors, and rejection of
+/// malformed frames.
 final class DownlinkCodecTests: XCTestCase {
     private let golden = GoldenVectors.shared
 
@@ -44,7 +46,7 @@ final class DownlinkCodecTests: XCTestCase {
             return XCTFail("D2 failed to decode")
         }
         XCTAssertEqual(frame.slip, 0.0)
-        XCTAssertTrue(frame.slip.sign == .minus, "the daemon does not normalise −0.0")
+        XCTAssertTrue(frame.slip.sign == .minus, "the daemon does not normalize −0.0")
         XCTAssertEqual(frame.rpm, 8000)
     }
 
@@ -69,7 +71,7 @@ final class DownlinkCodecTests: XCTestCase {
         XCTAssertNil(DownlinkCodec.decode(bytes))
     }
 
-    /// A NaN reaching the rumble maths would make the intensity NaN and silence
+    /// A NaN reaching the rumble math would make the intensity NaN and silence
     /// the motor with no error reported anywhere.
     func testSanitize() {
         XCTAssertEqual(DownlinkCodec.sanitize(.nan), 0)

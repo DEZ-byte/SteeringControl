@@ -1,7 +1,8 @@
 import XCTest
 @testable import OpenSteerCore
 
-/// Invariants I9 and I10.
+/// Steering shape and Int16 mapping against the golden vectors. Invariants I9
+/// and I10.
 final class SteerMapperTests: XCTestCase {
     private let golden = GoldenVectors.shared
 
@@ -35,7 +36,7 @@ final class SteerMapperTests: XCTestCase {
     }
 
     /// Beyond half the degrees of rotation the wheel is on the stops. Without the
-    /// clamp the axis would wrap round to the opposite lock, which at speed means
+    /// clamp the axis would wrap around to the opposite lock, which at speed means
     /// full opposite steering with no warning.
     func testBeyondLockIsClamped() {
         let mapper = SteerMapper(dor: .dor360, deadband: 0, gamma: 1)
@@ -49,7 +50,7 @@ final class SteerMapperTests: XCTestCase {
     func testSignConvention() {
         let mapper = SteerMapper(dor: .dor360, deadband: 0, gamma: 1)
         XCTAssertLessThan(mapper.steer(continuousDegrees: 90), 0,
-                          "turning anticlockwise must steer left")
+                          "turning counterclockwise must steer left")
         XCTAssertGreaterThan(mapper.steer(continuousDegrees: -90), 0,
                              "turning clockwise must steer right")
     }
@@ -87,7 +88,7 @@ final class SteerMapperTests: XCTestCase {
         XCTAssertEqual(SteerMapper.roundHalfAway(-16383.5), -16384)
     }
 
-    /// More travel for the same angle is the whole point of a larger DOR.
+    /// More travel for the same angle is what a larger DOR is for.
     func testLargerDorIsLessSensitive() {
         let tight = SteerMapper(dor: .dor180, deadband: 0, gamma: 1)
         let loose = SteerMapper(dor: .dor360, deadband: 0, gamma: 1)
@@ -95,8 +96,7 @@ final class SteerMapperTests: XCTestCase {
                              abs(Int(loose.steer(continuousDegrees: 30))))
     }
 
-    /// The defaults are gentler than unshaped near the centre, which is the
-    /// difference between a wheel and a switch. The fixture vectors deliberately
+    /// The defaults are gentler than unshaped near the center. The fixture vectors
     /// use δ=0 and γ=1, so this is the only place the shipping defaults are
     /// checked.
     func testDefaultsSoftenTheCentre() {
@@ -118,8 +118,8 @@ final class AngleUnwrapperTests: XCTestCase {
     ///
     /// The fixture lists the nominal angles, but its expected total comes from
     /// running actual quaternions through the twist extractor, so the test does
-    /// the same. Feeding the listed degrees straight in would sail past without
-    /// ever exercising a wrap, which is the entire point of the vector.
+    /// the same. Feeding the listed degrees straight in would never exercise a
+    /// wrap, which is what the vector exists to test.
     func testUnwrapVector() {
         let vector = golden.unwrap
         var extractor = TwistExtractor()

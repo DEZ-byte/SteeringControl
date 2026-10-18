@@ -122,9 +122,9 @@ public sealed class UdpHotLoop
 
         while (!cancellation.IsCancellationRequested)
         {
-            // Outer wait is BLOCKING: the thread sits in select() at 0% CPU until a
-            // datagram lands or the timeout expires. This is the invariant that keeps
-            // an idle daemon off the CPU entirely.
+            // The outer wait blocks: the thread sits in select() at 0% CPU until a
+            // datagram lands or the timeout expires, which keeps an idle daemon off
+            // the CPU entirely.
             int timeoutUs = _watchdog.State is WatchdogState.Live or WatchdogState.Decaying
                                              or WatchdogState.Recovering
                 ? PollLiveUs
@@ -197,8 +197,8 @@ public sealed class UdpHotLoop
                 EchoSender?.SendEcho(now, newest.TimestampNs);
             }
 
-            // Runs every pass, packet or not: this is what makes the fail-safe fire
-            // on silence rather than needing a packet to notice the silence.
+            // Runs every pass, packet or not, so the fail-safe fires on silence
+            // without needing a packet to notice it.
             if (_watchdog.Evaluate(now, ref control))
             {
                 _sink.Update(in control);
@@ -298,7 +298,7 @@ public sealed class UdpHotLoop
         _counters.Dropped += lost;
         _counters.Accepted++;
 
-        // A 32-byte copy onto the stack, NOT a reference into the receive buffer:
+        // A 32-byte copy onto the stack, not a reference into the receive buffer:
         // the next iteration of the drain loop overwrites that buffer.
         newest = MemoryMarshal.Read<UplinkPacket>(frame);
 

@@ -11,10 +11,10 @@ as the driver stays in the menu.
 Emulates that with a page that is written once and never again, and watches what
 the downlink actually carries.
 
-The verdict is deliberately not "did 5000 ever follow a 0". The first 0 is simply
-the daemon sending zeros before the page exists, so that test fires on a healthy
-run too and was reported as a false positive once already. What matters is whether
-5000 comes back AFTER the page has been declared stale, which is the loop.
+The verdict is not "did 5000 ever follow a 0". The first 0 is the daemon sending
+zeros before the page exists, so that test fires on a healthy run too and has
+already produced one false positive. What matters is whether 5000 comes back after
+the page has been declared stale, which is the loop.
 
 Safe to run: the daemon starts in --mode none, so no virtual controller exists.
 Refuses to start if the real game is running, because writing into a live physics
@@ -117,8 +117,7 @@ def main(argv: list[str] | None = None) -> int:
             print("daemon never reported a bound socket", file=sys.stderr)
             return 2
 
-        # Written once and never again, which is exactly what a paused game leaves
-        # behind.
+        # Written once and never again, which is what a paused game leaves behind.
         region = mmap.mmap(-1, 4096, tagname=MAP_NAME)
         struct.pack_into("<i", region, OFF_RPMS, FROZEN_RPM)
         struct.pack_into("<i", region, OFF_PACKET_ID, 7)

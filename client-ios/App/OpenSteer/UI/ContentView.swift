@@ -33,9 +33,9 @@ struct ContentView: View {
             }
         }
         .statusBarHidden(true)
-        // Keeps an edge swipe from pulling down Control Centre or the app
+        // Keeps an edge swipe from pulling down Control Center or the app
         // switcher mid-corner. The driver has to swipe twice to leave, which is
-        // the behaviour every full-screen game uses.
+        // the behavior every full-screen game uses.
         .defersSystemGestures(on: .all)
         .persistentSystemOverlays(.hidden)
         .sheet(isPresented: $showingSettings) {
@@ -54,11 +54,11 @@ struct ContentView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             // Backgrounding stops the sensors, the connection and the haptics.
-            // Leaving a 120 Hz gyro running behind a phone call is a fast way to
-            // get the app killed for power use. `.inactive` is not backgrounding:
-            // it is a notification banner, a half-pulled Control Centre, or the
-            // Local Network prompt over the first connection attempt, and tearing
-            // the session down under any of those drops the driver mid-corner.
+            // A 120 Hz gyro left running behind a phone call can get the app
+            // killed for power use. `.inactive` is not backgrounding: it is a
+            // notification banner, a half-pulled Control Center, or the Local
+            // Network prompt over the first connection attempt, and tearing the
+            // session down under any of those drops the driver mid-corner.
             if phase == .background { session.enterBackground() }
         }
     }
@@ -144,7 +144,7 @@ struct ContentView: View {
             }
 
             Button(action: session.recalibrate) {
-                Text("CENTRE")
+                Text("CENTER")
                     .font(.system(size: 12, weight: .bold, design: .monospaced))
                     .padding(.horizontal, 18)
                     .frame(height: 34)
@@ -152,8 +152,7 @@ struct ContentView: View {
                     .foregroundStyle(.white.opacity(0.9))
             }
 
-            // Held, never latched. A handbrake you have to remember to release is
-            // a handbrake you discover halfway down the next straight.
+            // Held, never latched, so the handbrake cannot be left on by mistake.
             HoldButton(label: "HOLD",
                        isHeld: session.isHandbrakeHeld) { held in
                 session.setHandbrake(held)

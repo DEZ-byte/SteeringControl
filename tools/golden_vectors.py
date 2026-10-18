@@ -24,7 +24,8 @@ import twistmath as t
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "golden_vectors.json")
 
-# Watchdog constants - kept here so every implementation agrees.
+# Watchdog constants (see Watchdog and fail-safe in docs/ARCHITECTURE.md), kept
+# here so every implementation agrees.
 T_SOFT_MS = 100.0
 T_HARD_MS = 250.0
 TAU_MS = 30.0
@@ -203,7 +204,7 @@ def main() -> int:
     add("TV6-deadband-gamma", t.IDENTITY, t.rz(-90), 360, deadband=0.05, gamma=1.2)
     doc["twist"] = tv
 
-    # The whole point of invariant I1: the banned method must disagree, hard.
+    # Invariant I1: the banned method must give a measurably different answer.
     tv3 = next(v for v in tv if v["name"].startswith("TV3-"))
     tv3b = next(v for v in tv if v["name"].startswith("TV3b"))
     if abs(abs(tv3["naive_projection_deg"]) - 10.0) < 0.5:
@@ -241,14 +242,14 @@ def main() -> int:
         for x in (0.0, 0.05, 0.5, -0.5, 1.0, -1.0)
     ]
 
-    # ---- watchdog reference curves ------------------------------------------
+    # ---- watchdog reference curves (Watchdog and fail-safe, docs/ARCHITECTURE.md)
     doc["watchdog"] = {
         "t_soft_ms": T_SOFT_MS, "t_hard_ms": T_HARD_MS, "tau_ms": TAU_MS,
         "t_slew_ms": T_SLEW_MS, "t_pslew_ms": T_PSLEW_MS,
         "decay_floor": DECAY_FLOOR,
         "failsafe": {"steer": 0, "throttle": 0, "brake": 0, "clutch": 0,
                      "buttons": 0,
-                     "note": "brake is 0, never 65535 - the car coasts"},
+                     "note": "brake is 0, never 65535: the car coasts"},
         "decay_from_40000": [{"silence_ms": s, "value": decay(40000, s)}
                              for s in (100, 120, 150, 200, 240, 245, 249, 250)],
         "steer_slew_0_to_32767": [

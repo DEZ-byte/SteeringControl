@@ -18,13 +18,13 @@ namespace osteer {
 /// Binds port 9999 and registers the callback, from inside `tcpip_callback`.
 ///
 /// lwIP is not thread-safe and its raw API must only be touched from the tcpip
-/// task. Calling `udp_bind` from `setup()` directly would work most of the time,
-/// which is the worst possible failure mode.
+/// task. Calling `udp_bind` from `setup()` directly would work most of the time
+/// and fail intermittently, which is hard to diagnose.
 bool startUplinkReceiver();
 
 /// Counters for the serial console. Written with relaxed atomics from the tcpip
-/// task and read from the main loop, so they are approximate by design: the cost
-/// of making them exact is a lock on the packet path.
+/// task and read from the main loop, so they are approximate: the cost of making
+/// them exact is a lock on the packet path.
 struct UplinkStats {
     uint32_t accepted;
     uint32_t badLength;

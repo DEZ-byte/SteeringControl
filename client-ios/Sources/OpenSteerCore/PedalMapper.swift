@@ -7,11 +7,11 @@ import Foundation
 /// silently sticks. Instead the zero point is wherever the thumb lands. Pull down
 /// from there to apply, and the value is always relative to that anchor.
 ///
-/// The ratchet is what makes it survive a long corner. If the thumb runs past
-/// full travel the anchor follows it down, so the pedal stays pinned at 100 per
-/// cent instead of saturating at an anchor the thumb can no longer reach. If the
-/// thumb goes back above the anchor, the anchor follows it up, so releasing is
-/// always immediate no matter how far the thumb wandered.
+/// The ratchet keeps it working through a long corner. If the thumb runs past
+/// full travel the anchor follows it down, so the pedal stays pinned at 100
+/// percent instead of saturating at an anchor the thumb can no longer reach. If
+/// the thumb goes back above the anchor, the anchor follows it up, so releasing
+/// is always immediate no matter how far the thumb wandered.
 public struct PedalMapper: Sendable {
     /// Points of thumb travel for the full range. Around a thumb's comfortable
     /// reach without moving the hand.
@@ -23,7 +23,7 @@ public struct PedalMapper: Sendable {
 
     private var anchorY: Double?
 
-    /// Normalised 0...1.
+    /// Normalized 0...1.
     public private(set) var value: Double = 0
 
     public init(travel: Double = PedalMapper.defaultTravel) {
@@ -58,7 +58,7 @@ public struct PedalMapper: Sendable {
     }
 
     /// Lifting the thumb releases the pedal at once. No easing: a throttle that
-    /// coasts down after the thumb leaves it is how you spin on corner exit.
+    /// ramps down after the thumb lifts can spin the car on corner exit.
     public mutating func ended() {
         anchorY = nil
         value = 0

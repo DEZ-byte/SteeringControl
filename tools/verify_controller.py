@@ -3,11 +3,12 @@ watch joy.cpl.
 
 Sends a handful of held steering positions to the daemon, then reads the resulting
 axis values back out of Windows through the multimedia joystick API - the same
-source joy.cpl itself displays. Comparing numbers beats eyeballing a bar graph.
+source joy.cpl itself displays. Comparing numbers is more reliable than reading a
+bar graph by eye.
 
-Deliberately gentle about the machine it runs on: steering only, never a button.
-Windows maps gamepad A and B to select and back for shell navigation, so a test
-that presses buttons will click things on the user's desktop. This one cannot.
+It moves axes only and never presses a button. Windows maps gamepad A and B to
+select and back for shell navigation, so a test that presses buttons will click
+things on the user's desktop.
 
 Run:  python tools/verify_controller.py
 """
@@ -125,7 +126,7 @@ def main(argv: list[str] | None = None) -> int:
     dst = (args.host, args.port)
     seq = 0
 
-    # Settle at centre first, and pick whichever device actually responds. Scanning
+    # Settle at center first, and pick whichever device actually responds. Scanning
     # for the one that moves avoids guessing wrong when other pads are plugged in.
     seq = hold(sock, dst, seq, steer=0, seconds=0.5)
     centre = {i: read_joystick(i) for i in devices}
@@ -148,10 +149,10 @@ def main(argv: list[str] | None = None) -> int:
     print()
 
     # Windows reports these axes as unsigned 0..65535, so signed steering maps to
-    # centre 32767. The tolerance covers the driver's own rounding.
+    # center 32767. The tolerance covers the driver's own rounding.
     cases = [
         ("full left", -32767, 0, 0, "X", 0),
-        ("centre", 0, 0, 0, "X", 32767),
+        ("center", 0, 0, 0, "X", 32767),
         ("full right", 32767, 0, 0, "X", 65535),
         ("half right", 16384, 0, 0, "X", 49151),
     ]
@@ -172,7 +173,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{name:<12} {steer:>8} {axis:>5} {expected:>9} {actual:>7} {error:>7}  "
               f"{'PASS' if ok else 'FAIL'}")
 
-    # Triggers share one axis under this API, exactly as joy.cpl shows them.
+    # Triggers share one axis under this API, as joy.cpl shows them.
     print()
     seq = hold(sock, dst, seq, steer=0, throttle=65535, seconds=0.4)
     thr = read_joystick(target)
@@ -190,7 +191,7 @@ def main(argv: list[str] | None = None) -> int:
             print("  FAIL  the two pedals did not move the axis in opposite directions")
             failures += 1
 
-    # Leave the wheel centred and every pedal released.
+    # Leave the wheel centered and every pedal released.
     hold(sock, dst, seq, steer=0, seconds=0.3)
     sock.close()
 

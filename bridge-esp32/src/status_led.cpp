@@ -26,8 +26,8 @@ void write(uint8_t r, uint8_t g, uint8_t b) {
         g = 0;
         b = 12;
     }
-    // Brightness is deliberately low. This board sits on a desk next to a screen
-    // in a dark room, and a full-brightness addressable LED is genuinely painful.
+    // Brightness is kept low because this board sits on a desk next to a screen
+    // in a dark room, where a full-brightness addressable LED is painful.
     rgbLedWrite(gLedGpio, r, g, b);
 }
 

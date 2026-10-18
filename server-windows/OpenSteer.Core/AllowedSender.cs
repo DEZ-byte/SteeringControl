@@ -12,7 +12,7 @@ namespace OpenSteer.Core;
 /// being pointed at a third machine.
 /// <para>
 /// This is a filter, not authentication. A host on the same segment can still forge
-/// the phone's address. It closes the open door; a keyed MAC would close the rest.
+/// the phone's address; only a keyed MAC would stop that.
 /// </para>
 /// Kept free of sockets so it can be tested (invariant I16): the caller hands over
 /// raw bytes and this type decides what they mean.
@@ -50,14 +50,14 @@ public sealed class AllowedSender
     }
 
     /// <summary>
-    /// Parses the <c>--allow</c> argument. Strict on purpose: four dotted decimal
-    /// octets and nothing else.
+    /// Parses the <c>--allow</c> argument. Strict: four dotted decimal octets and
+    /// nothing else.
     /// </summary>
     /// <remarks>
     /// The framework parser also takes <c>10.1</c> (as 10.0.0.1), <c>0x0A000001</c>
-    /// and leading-zero forms. On this flag a typo does not fail open, it fails
-    /// closed: the daemon runs and nothing can ever drive, with no hint why. So
-    /// anything that is not plainly one phone's address is refused at start-up:
+    /// and leading-zero forms. On this flag a typo fails closed: the daemon runs and
+    /// nothing can drive, with no hint why. So anything that is not plainly one
+    /// phone's address is refused at startup:
     /// shorthand, hex, leading zeros, the unspecified address, broadcast, multicast
     /// and the reserved range above it.
     /// </remarks>

@@ -63,7 +63,7 @@ struct ConnectView: View {
                        + "car's steering lock. 180° means 90° each way, which is "
                        + "about as far as hands go. Larger is calmer and harder to "
                        + "reach; smaller is quicker and twitchier. Response above "
-                       + "1.0 softens the centre and keeps full lock reachable.")
+                       + "1.0 softens the center and keeps full lock reachable.")
                 }
 
                 Section {

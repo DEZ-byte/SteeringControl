@@ -14,9 +14,9 @@ public struct ControllerState : IEquatable<ControllerState>
     public uint Buttons;
 
     /// <summary>
-    /// The fail-safe coasts. Brake is 0, NOT 65535. Injecting a full brake while the
-    /// link is down destabilises the tyre model and can spin a car mid-corner;
-    /// coasting with the wheel centred is recoverable.
+    /// The fail-safe coasts: brake is 0, not 65535. Injecting a full brake while the
+    /// link is down destabilizes the tire model and can spin a car mid-corner;
+    /// coasting with the wheel centered is recoverable.
     /// </summary>
     public static readonly ControllerState FailSafe = default;
 

@@ -96,7 +96,7 @@ struct WheelView: UIViewRepresentable {
             let radius = side / 2 - 12
 
             for shape in [rim, spokes, marker] {
-                // Rotating about the centre of the view, not the corner of the
+                // Rotating about the center of the view, not the corner of the
                 // layer, which is where a default anchor point would put it.
                 shape.bounds = bounds
                 shape.anchorPoint = CGPoint(x: 0.5, y: 0.5)
@@ -127,7 +127,7 @@ struct WheelView: UIViewRepresentable {
         private func applyLatestAngle() {
             guard let snapshot = store?.readMotion() else { return }
 
-            // The driver turns the phone anticlockwise to steer left, and the
+            // The driver turns the phone counterclockwise to steer left, and the
             // wheel on screen has to follow the hands exactly. Any smoothing here
             // would show up as the graphic lagging the real thing.
             let radians = CGFloat(snapshot.thetaDegrees * degreesToRadians)

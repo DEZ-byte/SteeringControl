@@ -5,7 +5,7 @@
 #   pre-commit run --all-files
 #
 # Hook versions are pinned to commit SHAs, not tags, because a tag can be moved.
-# Update deliberately with `pre-commit autoupdate --freeze`.
+# Update them with `pre-commit autoupdate --freeze`.
 
 repos:
   - repo: https://github.com/gitleaks/gitleaks

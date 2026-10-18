@@ -68,7 +68,7 @@ public struct Quat: Sendable, Equatable {
     /// tilt we do not want to read as steering. Eight multiply-adds instead of
     /// sixteen, and the parts we would have thrown away are never computed.
     ///
-    /// Argument order is load-bearing. `qCur ⊗ conj(qRef)` is the same rotation
+    /// Argument order matters. `qCur ⊗ conj(qRef)` is the same rotation
     /// expressed in the *world* frame, so its Z component shrinks by roughly
     /// cos(tilt): at an 85-degree recline it reports under a tenth of the real
     /// turn. See the TV3 fixture.

@@ -590,7 +590,7 @@
       "brake": 0,
       "clutch": 0,
       "buttons": 0,
-      "note": "brake is 0, never 65535 - the car coasts"
+      "note": "brake is 0, never 65535: the car coasts"
     },
     "decay_from_40000": [
       {

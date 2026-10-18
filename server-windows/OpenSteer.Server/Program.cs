@@ -165,8 +165,8 @@ internal static class Program
         OutputMode.A => new ViGEmX360Sink(config.ClutchAxis),
         OutputMode.B => new UnavailableSink(
             "vJoy",
-            "Mode B is not implemented yet. Memory Integrity is enabled on "
-          + "this machine and can refuse the vJoy driver, so Mode A is the supported path."),
+            "Mode B is not implemented yet. Memory Integrity, when enabled, can refuse "
+          + "the vJoy driver, so Mode A is the supported path."),
         _ => new NullSink(),
     };
 
@@ -180,7 +180,7 @@ internal static class Program
     /// a receive-to-inject p99 of 3200 us, against 300 us or less for every window
     /// after it. Warming the driver alone took it to 1700 us; the remainder was the
     /// validator, the checksum and the watchdog being cold. This costs a few
-    /// milliseconds of startup and buys a first corner that behaves like the rest.
+    /// milliseconds of startup.
     /// <para>
     /// The watchdog used here is a throwaway instance: warming the real one would
     /// leave it holding a fabricated packet.
@@ -205,7 +205,7 @@ internal static class Program
             if (PacketValidator.CheckFrame(frame) != Verdict.Ok)
             {
                 // The frame is built right here, so this cannot happen unless the
-                // checksum or the struct layout has regressed. Better to know now.
+                // checksum or the struct layout has regressed, which should stop startup.
                 throw new InvalidOperationException("warm-up frame failed its own validation");
             }
 

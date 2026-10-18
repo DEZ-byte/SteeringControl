@@ -8,11 +8,10 @@ import OpenSteerCore
 /// touches the main thread: attitude to relative twist, unwrap, shape, encode,
 /// send. The main actor only ever reads a finished snapshot.
 ///
-/// Routing motion through the main queue is the mistake this design exists to
-/// avoid. SwiftUI shares that queue with layout, text rendering and gesture
-/// recognition, so a single busy frame delays the steering packet behind it. The
-/// budget for the whole chain is under two microseconds; a main-thread hop can
-/// cost thousands.
+/// Motion never goes through the main queue. SwiftUI shares that queue with
+/// layout, text rendering and gesture recognition, so a single busy frame would
+/// delay the steering packet behind it. The budget for the whole chain is under
+/// two microseconds; a main-thread hop can cost thousands.
 final class MotionEngine: @unchecked Sendable {
     enum PipelineError: Error, Equatable {
         /// The caller tried to run the sensor handler on the main queue.
@@ -38,7 +37,7 @@ final class MotionEngine: @unchecked Sendable {
     private let onSample: @Sendable (UplinkState, ControlInputs) -> Void
 
     // Everything below is touched only from `queue`, which is serial. That
-    // confinement is the synchronisation; there is no lock because there is no
+    // confinement is the synchronization; there is no lock because there is no
     // second writer.
     private var configuration: Configuration
     private var extractor = TwistExtractor()
@@ -52,9 +51,8 @@ final class MotionEngine: @unchecked Sendable {
 
     private(set) var isRunning = false
 
-    /// Throws rather than silently degrading. A wheel that quietly runs its
-    /// sensor loop on the main queue feels almost right, which is worse than one
-    /// that refuses to start.
+    /// Throws rather than silently degrading: a sensor loop on the main queue
+    /// still mostly works, so the added latency would go unnoticed.
     init(queue: OperationQueue,
          store: SnapshotStore,
          configuration: Configuration = Configuration(),
@@ -90,8 +88,8 @@ final class MotionEngine: @unchecked Sendable {
                                                to: queue) { [weak self] motion, _ in
             guard let self, let motion else { return }
             #if DEBUG
-            // The whole design rests on this. If it ever fires, the handler has
-            // been rerouted and the latency budget is gone.
+            // If this fires, the handler has been rerouted to the main queue and
+            // the latency budget no longer holds.
             dispatchPrecondition(condition: .notOnQueue(.main))
             #endif
             self.handle(motion)
@@ -165,8 +163,8 @@ final class MotionEngine: @unchecked Sendable {
                                 buttons: buttons.rawValue,
                                 timestampNs: DispatchTime.now().uptimeNanoseconds)
 
-        // `calibrateRequested` is deliberately left set: the haptics engine uses
-        // it to confirm the recentre with a double tap the driver can feel.
+        // `calibrateRequested` is left set because the haptics engine uses it to
+        // confirm the recenter with a double tap the driver can feel.
         onSample(state, inputs)
 
         // The UI reads this whenever it draws; it never waits for it.

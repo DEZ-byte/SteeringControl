@@ -4,14 +4,14 @@ import Foundation
 ///
 /// Nothing here touches a socket, a timer or the UI. `transition` takes a state
 /// and an event and returns the next state plus a list of things for the caller
-/// to do. That is what makes the state table testable line by line rather than
-/// by hand on a phone.
+/// to do. That makes the link state table (iOS client in docs/ARCHITECTURE.md)
+/// testable line by line rather than by hand on a phone.
 public enum LinkState: Sendable, Equatable {
     case idle
     case connecting
     case streaming
     /// Still sending, but telemetry has stopped. The driver keeps control of the
-    /// car and only loses haptics, which is the right way round.
+    /// car and only loses haptics.
     case degraded
     case disconnected
 }
@@ -70,7 +70,7 @@ public struct LinkStateMachine: Sendable {
     ///
     /// The ESP32 bridge never sends any. Without this gate every bridge session
     /// would drop to Degraded half a second in and stay there, reporting a fault
-    /// that is really just a device with nothing to say.
+    /// for a device that has no telemetry to send.
     public private(set) var hasSeenDownlink = false
 
     public init(state: LinkState = .idle, hasSeenDownlink: Bool = false) {
@@ -133,7 +133,7 @@ public struct LinkStateMachine: Sendable {
              (.degraded, .sendErrorLimitReached),
              (.degraded, .failed):
             // Motion keeps running. Restarting CoreMotion would drop the
-            // calibration reference and recentre the wheel under the driver.
+            // calibration reference and recenter the wheel under the driver.
             return (.disconnected, [.cancelConnection, .muteHaptics, .scheduleBackoff])
 
         case (.disconnected, .backoffElapsed):

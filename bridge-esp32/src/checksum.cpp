@@ -11,7 +11,7 @@ inline uint32_t rotl(uint32_t x, unsigned r) {
 ///
 /// Never a pointer cast. Offsets 20 and 24 sit four-byte aligned inside the packet
 /// but the receive buffer itself carries no alignment promise, and a cast there is
-/// undefined behaviour on paper even where the hardware would have coped.
+/// undefined behavior in the language even where the hardware would cope.
 inline uint32_t u32(const uint8_t* b, size_t i) {
     return static_cast<uint32_t>(b[i]) |
            (static_cast<uint32_t>(b[i + 1]) << 8) |

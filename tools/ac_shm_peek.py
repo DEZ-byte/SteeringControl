@@ -10,7 +10,7 @@ game is running but not simulating, which is what sitting in a menu looks like a
 is the single most common reason for "the telemetry is not working".
 
 Read only. It never writes, so it is safe to run while somebody is driving, unlike
-inject_ac_shm.py which deliberately refuses to start if the game is up.
+inject_ac_shm.py, which refuses to start if the game is up.
 
 Run:  python tools/ac_shm_peek.py
 """
@@ -139,7 +139,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  throttle    {second['gas']}")
     print(f"  brake       {second['brake']}")
     print(f"  steer       {second['steer_deg']} deg")
-    print(f"  tyre slip   {second['slip']}")
+    print(f"  tire slip   {second['slip']}")
     print(f"  abs / tc    {second['abs']} / {second['tc']}")
     print()
     print("LIVE      the daemon will show shm=Attached and stream this to the phone.")

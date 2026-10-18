@@ -3,9 +3,9 @@ import Foundation
 /// XXH32, in the one shape the protocol needs plus a generic form for the tests.
 ///
 /// The generic version exists only so the unit tests can check this code against
-/// the four published XXH32 reference vectors. That is what makes the fixed-size
-/// version below trustworthy: it agrees with an outside source, not merely with
-/// the other three OpenSteer implementations.
+/// the four published XXH32 reference vectors, so the fixed-size version below is
+/// checked against an outside source rather than only against the other three
+/// OpenSteer implementations.
 public enum XXHash32 {
     public static let p1: UInt32 = 0x9E37_79B1
     public static let p2: UInt32 = 0x85EB_CA77
@@ -28,7 +28,7 @@ public enum XXHash32 {
     /// Little-endian 32-bit load, built by OR-ing bytes.
     ///
     /// Never a pointer cast. Offsets 20 and 24 are not 4-aligned inside the
-    /// packet, and a cast there is undefined behaviour on paper even where it
+    /// packet, and a cast there is undefined behavior on paper even where it
     /// happens to work on ARM.
     @inline(__always)
     private static func u32(_ b: UnsafeRawBufferPointer, _ i: Int) -> UInt32 {

@@ -5,9 +5,9 @@ using Xunit;
 namespace OpenSteer.Tests;
 
 /// <summary>
-/// The watchdog is the only thing standing between a dropped Wi-Fi frame and a car
-/// that will not steer, so every constant here is pinned to a value computed by
-/// tools/golden_vectors.py rather than typed in by hand.
+/// The watchdog decides what the car does when Wi-Fi frames are lost, so every
+/// constant here is pinned to a value computed by tools/golden_vectors.py rather
+/// than typed in by hand.
 /// </summary>
 public class WatchdogTests
 {
@@ -62,7 +62,7 @@ public class WatchdogTests
     [Fact]
     public void SteerIsHeldWhileThePedalsDecay()
     {
-        // Centring the wheel mid-corner is worse than holding the last known angle
+        // Centering the wheel mid-corner is worse than holding the last known angle
         // for 150 ms, so only the pedals bleed off during stage one.
         var (wd, state) = Live(12000, 40000, btn: 0x7);
 
@@ -77,7 +77,7 @@ public class WatchdogTests
     public void FailSafeCoastsAndDoesNotBrake()
     {
         // Brake is 0 here, not 65535: a full brake injected mid-corner while the
-        // link is down destabilises the tyre model and can spin the car. Coasting
+        // link is down destabilizes the tire model and can spin the car. Coasting
         // is recoverable.
         var (wd, state) = Live(12000, 40000, brk: 30000);
 
@@ -156,8 +156,8 @@ public class WatchdogTests
             Assert.Equal((ushort)expect, state.Throttle);
         }
 
-        // Pedals are done at 100 ms while steering has 200 ms left to run, which is
-        // the point: throttle response returns immediately, the wheel eases back.
+        // Pedals are done at 100 ms while steering has 200 ms left to run, so
+        // throttle response returns immediately while the wheel eases back.
         Assert.Equal((ushort)65535, state.Throttle);
         Assert.Equal(WatchdogState.Recovering, wd.State);
     }

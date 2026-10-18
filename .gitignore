@@ -20,9 +20,9 @@ __pycache__/
 Thumbs.db
 
 # Generated project files and build trees
-# The .xcodeproj is produced by `xcodegen generate` from App/project.yml. A project
-# file is a merge-conflict machine and nobody can review a diff of one, so the spec
-# is the source of truth and the project is rebuilt on demand.
+# The .xcodeproj is produced by `xcodegen generate` from App/project.yml. Project
+# files conflict on almost every merge and their diffs cannot be reviewed, so the
+# spec is the source of truth and the project is rebuilt on demand.
 client-ios/App/*.xcodeproj
 client-ios/App/*.xcworkspace
 client-ios/.build/
@@ -38,7 +38,7 @@ bridge-esp32/*.ino.cpp
 third_party/vjoy-sdk/
 
 # third_party/vigem holds one small, required, MIT-licensed native library.
-# It is tracked on purpose so the project builds with no external download;
+# It is tracked so the project builds with no external download;
 # anything else that lands in that folder is a setup artifact and is not.
 third_party/vigem/*
 !third_party/vigem/ViGEmClient.dll

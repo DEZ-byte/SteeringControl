@@ -38,7 +38,7 @@ inline void bump(std::atomic<uint32_t>& counter) {
 /// Sequence tracking, private to the tcpip task.
 ///
 /// Not shared, not atomic, not locked: exactly one thread ever touches it, which
-/// is lwIP's own. The moment a second reader appears this has to change.
+/// is lwIP's own. A second reader would need this to change.
 struct LinkState {
     uint16_t lastSeq = 0;
     int64_t lastRxUs = 0;
@@ -71,8 +71,8 @@ void onUplinkRaw(void* /*arg*/, udp_pcb* /*pcb*/, pbuf* p,
     }
 
     // pbuf_copy_partial rather than reading p->payload directly. A datagram can
-    // arrive split across a chain of buffers, and on the day that happens a direct
-    // read silently sees only the first fragment.
+    // arrive split across a chain of buffers, and when that happens a direct read
+    // silently sees only the first fragment.
     if (pbuf_copy_partial(p, gFrame, kUplinkSize, 0) != kUplinkSize) {
         bump(gBadLength);
         pbuf_free(p);
@@ -103,7 +103,7 @@ void onUplinkRaw(void* /*arg*/, udp_pcb* /*pcb*/, pbuf* p,
 
     // The gate reopens in the thread that owns it. After a quarter second of
     // silence the link is being rebuilt from scratch, so the next sequence number
-    // is whatever the phone feels like and must not be judged against the old one.
+    // can be anything and must not be judged against the old one.
     if (!gLink.first && (now - gLink.lastRxUs) > static_cast<int64_t>(cfg::kHardMs * 1000.0)) {
         gLink.first = true;
     }
@@ -181,10 +181,10 @@ bool startUplinkReceiver() {
     }
 
     // `tcpip_callback` posts the work to the tcpip task and returns at once. It
-    // does NOT wait for the callback to run, so the result has to be waited for
+    // does not wait for the callback to run, so the result has to be waited for
     // explicitly. Reading the flag straight after the call would read it before
     // the bind had happened, report a failure that did not occur, and leave the
-    // bridge sitting on a fault light with a perfectly good radio.
+    // bridge showing the fault light with a working radio.
     if (tcpip_callback(bindOnTcpipTask, nullptr) != ERR_OK) {
         return false;
     }

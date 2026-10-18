@@ -13,7 +13,7 @@ namespace cfg {
 
 // 0x303A is Espressif's vendor id. Espressif allocates product ids under it on
 // request (https://github.com/espressif/usb-pids). 0x8100 and 0x8101 are
-// PLACEHOLDERS that have NOT been allocated to this project: fine on your own
+// placeholders that have not been allocated to this project: fine on your own
 // desk, but replace them with an allocated pair, and link the allocation here,
 // before distributing a build.
 //
@@ -32,9 +32,9 @@ constexpr const char* kManufacturer = "OpenSteer";
 
 constexpr const char* kApSsid = "OpenSteer-AP";
 
-// There is deliberately no password in this file. A default printed in a public
-// repository is one everyone in radio range already knows, and the bridge has a
-// single station slot for them to take. Each build supplies its own in
+// There is no password in this file. A default printed in a public repository
+// is one everyone in radio range already knows, and the bridge has a single
+// station slot for them to take. Each build supplies its own in
 // src/ap_secret.h, which is git-ignored (copy src/ap_secret.example.h), and
 // wifi_ap.cpp, the only consumer, refuses to compile without it. Kept out of this
 // header so the chip-free host test, which includes config.h, still builds.

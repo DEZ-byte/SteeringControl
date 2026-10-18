@@ -164,8 +164,8 @@ class ChecksumTests(unittest.TestCase):
             cls.golden = json.load(handle)
 
     def test_published_reference_vectors(self) -> None:
-        # The anchor. Without these, the bridge agreeing with the daemon would
-        # only prove they are wrong in the same way.
+        # These anchor the checksum to the spec. Without them, the bridge agreeing
+        # with the daemon could mean both are wrong in the same way.
         for vector in self.golden["xxh32_generic"]:
             data = bytes.fromhex(vector["data_hex"].replace(" ", ""))
             self.assertEqual(xxh32(data, int(vector["seed"], 16)),
@@ -210,7 +210,7 @@ class WatchdogTests(unittest.TestCase):
 
     def test_failsafe_coasts_rather_than_braking(self) -> None:
         # The fail-safe emits brake 0, not 65535, so the car coasts. A full brake
-        # injected while the link is down destabilises the tyre model and can spin
+        # injected while the link is down destabilizes the tire model and can spin
         # a car mid-corner.
         failsafe = self.wd["failsafe"]
         self.assertEqual(failsafe["brake"], 0)
@@ -245,8 +245,8 @@ class WatchdogTests(unittest.TestCase):
                              f"pedal at {point['elapsed_ms']} ms")
 
     def test_pedals_finish_long_before_steering(self) -> None:
-        # The whole point of two slew times. Throttle response comes back almost
-        # at once; only the wheel needs easing.
+        # This is why there are two slew times: throttle response comes back
+        # almost at once, and only the wheel needs easing.
         self.assertEqual(lerp_int(0, 65535, clamp01(100 / PEDAL_SLEW_MS)), 65535)
         self.assertLess(lerp_int(0, 32767, clamp01(100 / STEER_SLEW_MS)), 32767)
 

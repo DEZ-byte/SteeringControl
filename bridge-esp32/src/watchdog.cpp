@@ -56,10 +56,10 @@ void Watchdog::onLinkDown(int64_t nowUs) {
         return;
     }
 
-    // Deliberately skips the decay. The decay exists to ride out silence that
-    // might still be a live link having a bad moment; a station that has
-    // disconnected is not coming back inside 250 ms, and holding the last
-    // steering angle meanwhile is exactly what the fail-safe is for.
+    // Skips the decay. The decay exists to ride out silence from a link that may
+    // still be live; a station that has disconnected will not come back inside
+    // 250 ms, and the fail-safe exists to stop the last steering angle being held
+    // in the meantime.
     hasPending_ = false;
     alertPending_ = true;
     transition(WdState::FailSafe, static_cast<int64_t>(msSince(tLastUs_, nowUs) * 1000.0));
@@ -177,7 +177,7 @@ void Watchdog::computeOutput(int64_t nowUs) {
             out_.throttle = decayTo(decayThr0_, f);
             out_.brake = decayTo(decayBrk0_, f);
 
-            // Steering is held, not decayed. Centring the wheel mid-corner is
+            // Steering is held, not decayed. Centering the wheel mid-corner is
             // worse than keeping the last known angle for 150 ms.
             out_.buttons = 0u;  // never let a shift paddle stick
             break;
@@ -197,7 +197,7 @@ void Watchdog::computeOutput(int64_t nowUs) {
             out_.brake = static_cast<uint16_t>(lerpInt(slewFromBrk_, last_.brake, b));
             out_.clutch = static_cast<uint16_t>(lerpInt(slewFromClu_, last_.clutch, b));
 
-            // Buttons are never slewed. Half a gear change is not a thing.
+            // Buttons are not slewed; a button has no value between on and off.
             out_.buttons = last_.buttons;
 
             if (a >= 1.0) {

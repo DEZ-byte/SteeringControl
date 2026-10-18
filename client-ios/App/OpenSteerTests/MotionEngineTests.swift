@@ -2,10 +2,10 @@ import XCTest
 import OpenSteerCore
 @testable import OpenSteer
 
-/// The sensor handler must never run on the main queue. A wheel whose steering
-/// loop shares a queue with layout and text rendering feels almost right, which
-/// is worse than one that refuses to start: the driver has no way to tell the
-/// difference between a bad connection and a busy main thread.
+/// The sensor handler must never run on the main queue. A steering loop that
+/// shares a queue with layout and text rendering still mostly works, and the
+/// driver cannot tell a bad connection from a busy main thread, so the engine
+/// refuses to start instead.
 final class MotionEngineTests: XCTestCase {
     private func makeQueue() -> OperationQueue {
         let queue = OperationQueue()
@@ -50,8 +50,8 @@ final class MotionEngineTests: XCTestCase {
 /// The touch-to-wire path, without a phone.
 final class ControlInputsTests: XCTestCase {
     /// The store hands out the one-shot flags and clears them in the same
-    /// acquisition. Splitting that into a read and a separate clear is how a
-    /// paddle tap gets counted twice, or lost between the two calls.
+    /// acquisition. Splitting that into a read and a separate clear could count a
+    /// paddle tap twice, or lose it between the two calls.
     func testOneShotFlagsAreTakenExactlyOnce() {
         let store = SnapshotStore()
         store.updateControls {

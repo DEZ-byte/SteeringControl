@@ -6,12 +6,11 @@ import Foundation
 /// It is how far you rotate the phone in your hands to command full lock, and the
 /// two numbers have nothing to do with each other.
 ///
-/// Getting this backwards is the easiest mistake in the project, and the values
-/// below exist to make it hard. A real 900 degree wheel turns two and a half
-/// times. Hands holding a phone manage about 90 degrees each way before the arms
-/// cross over, so a phone set to 900 can only ever ask for 90/450, which is a
-/// fifth of the car's lock, no matter how hard the driver tries. The symptom is a
-/// car that will barely turn.
+/// This is easy to get backwards, and the values below are chosen to prevent it.
+/// A real 900 degree wheel turns two and a half times. Hands holding a phone
+/// manage about 90 degrees each way before the arms cross over, so a phone set
+/// to 900 can only ever ask for 90/450, which is a fifth of the car's lock, no
+/// matter how hard the driver tries. The symptom is a car that will barely turn.
 ///
 /// So the useful range is roughly twice whatever the wrists can comfortably
 /// reach, and every option here is in that range.
@@ -31,20 +30,19 @@ public enum DegreesOfRotation: Int, Sendable, CaseIterable, Identifiable {
     public var degrees: Double { Double(rawValue) }
     public var label: String { "\(rawValue)°" }
 
-    /// How far the phone must rotate from centre to reach full lock.
+    /// How far the phone must rotate from center to reach full lock.
     public var wristReachDegrees: Double { Double(rawValue) / 2.0 }
 }
 
 /// Turns a continuous steering angle into the wire axis value.
 ///
 /// Invariant I9: this shaping happens exactly once, here on the phone. The host
-/// has no shaper at all, so what the phone sends is what the game receives. That
-/// is why `--dor` on the daemon is print-only.
+/// has no shaper at all, so what the phone sends is what the game receives.
 public struct SteerMapper: Sendable, Equatable {
     /// A touch of deadband stops thumb tremor registering as steering input.
     public static let defaultDeadband = 0.01
 
-    /// Above 1 this softens the centre and sharpens the ends, which is what makes
+    /// Above 1 this softens the center and sharpens the ends, which is what makes
     /// a phone feel like a wheel rather than a switch.
     public static let defaultGamma = 1.15
 
@@ -91,8 +89,8 @@ public struct SteerMapper: Sendable, Equatable {
 
     /// Half away from zero, grouped exactly as `AxisMath.RoundHalfAway` in the C#
     /// core and `round_half_away` in the Python reference. A plain `.rounded()`
-    /// agrees on every value we care about, but writing it out keeps the three
-    /// implementations obviously identical instead of merely probably identical.
+    /// agrees on every value we care about, but writing it out makes it plain that
+    /// the three implementations are identical.
     public static func roundHalfAway(_ v: Double) -> Int {
         Int(v >= 0 ? (v + 0.5).rounded(.down) : (v - 0.5).rounded(.up))
     }

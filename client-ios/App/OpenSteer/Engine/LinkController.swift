@@ -8,8 +8,8 @@ import OpenSteerCore
 ///
 /// Everything in this class runs on one serial queue. The motion handler, the
 /// send completions, the receive loop and the Network.framework state callbacks
-/// all land there, which is the only thing Network.framework actually promises
-/// and is why there is not a single lock in here.
+/// all land there, which is what Network.framework guarantees and why this class
+/// needs no locks.
 final class LinkController: @unchecked Sendable {
     struct Status: Sendable, Equatable {
         var state: LinkState = .idle
@@ -163,10 +163,10 @@ final class LinkController: @unchecked Sendable {
         // and it is the single largest latency win available over Wi-Fi.
         parameters.serviceClass = .interactiveVoice
         // Cellular is barred because the daemon is on the local network and a
-        // cellular path could only ever be a dead end.
+        // cellular path cannot reach it.
         parameters.prohibitedInterfaceTypes = [.cellular]
-        // `prohibitExpensivePaths` is deliberately NOT set: a personal hotspot is
-        // marked expensive, and that is one of the two best ways to run this.
+        // `prohibitExpensivePaths` is not set: a personal hotspot is marked
+        // expensive, and a hotspot is one of the two recommended ways to run this.
 
         let endpoint = NWEndpoint.Host(host)
         let connection = NWConnection(host: endpoint, port: portValue, using: parameters)
@@ -232,11 +232,10 @@ final class LinkController: @unchecked Sendable {
             status.message = "Waiting: \(Self.describe(error))"
             publishStatus()
 
-        // The state table gives `.waiting` and `.failed` a 3 s dwell before
-        // Disconnected. Only `.waiting` gets it here, via the supervisor's connect
-        // timeout: `.failed` is a terminal NWConnection state, so waiting three
-        // seconds to react to it only delays the backoff that is going to happen
-        // regardless.
+        // Only `.waiting` gets the 3 s dwell before Disconnected, via the
+        // supervisor's connect timeout. `.failed` is a terminal NWConnection
+        // state, so a dwell would only delay the backoff. See the link state
+        // table in docs/ARCHITECTURE.md.
         case .failed(let error):
             status.message = "Failed: \(Self.describe(error))"
             apply(machine.handle(.failed))
@@ -285,10 +284,9 @@ final class LinkController: @unchecked Sendable {
             try engine.start()
             motion = engine
         } catch {
-            // Streaming with a dead sensor is the one failure the driver cannot
-            // diagnose from inside the car: the link looks healthy and the wheel
-            // simply never moves. The state machine is held in Connecting and the
-            // reason stays on the HUD instead.
+            // A dead sensor is hard to diagnose from the driver's seat: the link
+            // looks healthy and the wheel never moves. The state machine is held
+            // in Connecting and the reason stays on the HUD instead.
             let reason = "Motion unavailable: \(error)"
             motionFailure = reason
             status.message = reason
@@ -350,9 +348,8 @@ final class LinkController: @unchecked Sendable {
 
     /// One 100 ms timer covers every deadline in the state table.
     ///
-    /// Three separate timers would be three separate things to cancel correctly
-    /// on every path out of a state, which is how a reconnect loop ends up
-    /// racing itself.
+    /// Three separate timers would each have to be canceled on every path out of
+    /// a state; missing one lets a reconnect loop race itself.
     private func startSupervisor() {
         stopSupervisor()
 

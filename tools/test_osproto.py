@@ -127,8 +127,8 @@ class TestTwistMath(unittest.TestCase):
                 self.assertEqual(t.steer_i16(norm), v["steer_i16"])
 
     def test_tilt_alone_produces_no_steering(self):
-        # The whole reason for twist-swing decomposition: pitching the phone toward
-        # or away from the driver must not turn the wheel at all.
+        # This is the reason for twist-swing decomposition: pitching the phone
+        # toward or away from the driver must not turn the wheel at all.
         for pitch in (15, 30, 45, 60, 85):
             with self.subTest(pitch=pitch):
                 ref = t.rx(pitch)
@@ -226,12 +226,13 @@ class TestWatchdogReference(unittest.TestCase):
         pedal = {r["elapsed_ms"]: r["value"] for r in w["pedal_slew_0_to_65535"]}
         self.assertEqual(steer[0], 0)
         self.assertEqual(steer[300], 32767)
-        self.assertEqual(steer[297], 32439)   # not 32440: 32767 * 0.99 = 32439.33
+        # Not 32440: see Watchdog and fail-safe in docs/ARCHITECTURE.md.
+        self.assertEqual(steer[297], 32439)
         self.assertEqual(pedal[0], 0)
         self.assertEqual(pedal[100], 65535)
         self.assertEqual(pedal[50], 32768)
-        # Pedals finish first on purpose, so throttle response returns immediately
-        # while the wheel eases back over the remaining 200 ms.
+        # Pedals finish first so that throttle response returns immediately while
+        # the wheel eases back over the remaining 200 ms.
         self.assertLess(w["t_pslew_ms"], w["t_slew_ms"])
 
 

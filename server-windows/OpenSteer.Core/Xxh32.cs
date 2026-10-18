@@ -10,14 +10,14 @@ namespace OpenSteer.Core;
 /// little-endian uint32 at offset 28.
 /// </summary>
 /// <remarks>
-/// Fixed at 28 bytes on purpose: that is one 16-byte stripe plus three 4-byte lanes
-/// and no 1-byte tail, so the implementation is branch-free and allocation-free and
+/// Fixed at 28 bytes: that is one 16-byte stripe plus three 4-byte lanes and no
+/// 1-byte tail, so the implementation is branch-free and allocation-free and
 /// is byte-identical in C#, Swift, Python and C++.
 /// <para>
 /// Chosen over Fletcher-16 because the field is 32 bits wide (Fletcher would waste
 /// half of it), Fletcher has no seed for protocol domain separation, and Fletcher
-/// cannot tell an all-0x00 run from an all-0xFF run - exactly the corruption
-/// pattern that matters for pedal and steering words.
+/// cannot tell an all-0x00 run from an all-0xFF run, a corruption pattern that
+/// matters for pedal and steering words.
 /// </para>
 /// </remarks>
 public static class Xxh32

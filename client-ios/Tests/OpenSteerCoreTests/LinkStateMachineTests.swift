@@ -1,6 +1,7 @@
 import XCTest
 @testable import OpenSteerCore
 
+/// The link state table, transition by transition.
 final class LinkStateMachineTests: XCTestCase {
     func testHappyPath() {
         var machine = LinkStateMachine()
@@ -27,7 +28,7 @@ final class LinkStateMachineTests: XCTestCase {
     }
 
     /// Telemetry stopping costs haptics and nothing else. The driver keeps
-    /// control of the car, which is the right way round.
+    /// control of the car.
     func testDownlinkSilenceDegradesButKeepsStreaming() {
         var machine = LinkStateMachine(state: .streaming, hasSeenDownlink: true)
         var effects = machine.handle(.downlinkSilent)
@@ -42,7 +43,7 @@ final class LinkStateMachineTests: XCTestCase {
     }
 
     /// Dropping the link must not restart CoreMotion. That would throw away the
-    /// calibration reference and recentre the wheel under the driver's hands.
+    /// calibration reference and recenter the wheel under the driver's hands.
     func testDisconnectKeepsTheMotionLoopAlive() {
         for start in [LinkState.streaming, .degraded] {
             for event in [LinkEvent.viabilityLostTooLong, .sendErrorLimitReached, .failed] {
@@ -59,8 +60,8 @@ final class LinkStateMachineTests: XCTestCase {
     /// Degraded at 500 ms only if a downlink was seen.
     ///
     /// The ESP32 bridge never sends telemetry. Without this gate every bridge
-    /// session would drop to Degraded half a second in and sit there reporting a
-    /// fault that is really a device with nothing to say.
+    /// session would drop to Degraded half a second in and stay there, reporting
+    /// a fault for a device that has no telemetry to send.
     func testSilenceIsNotAFaultUntilTelemetryHasBeenSeenOnce() {
         var machine = LinkStateMachine()
         machine.handle(.start)

@@ -17,10 +17,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Invariant I16: Tests reference OpenSteer.Core ONLY, never the executable.
-         That is what makes CS0017 (duplicate entry point) and NETSDK1151
-         (self-contained exe referenced by a non-self-contained exe) structurally
-         impossible, which is why the Server project can set SelfContained=true. -->
+    <!-- Invariant I16: Tests reference only OpenSteer.Core, never the executable.
+         That rules out CS0017 (duplicate entry point) and NETSDK1151
+         (self-contained exe referenced by a non-self-contained exe), which is why
+         the Server project can set SelfContained=true. -->
     <ProjectReference Include="..\OpenSteer.Core\OpenSteer.Core.csproj" />
   </ItemGroup>
 

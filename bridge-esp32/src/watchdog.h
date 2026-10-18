@@ -1,19 +1,20 @@
 #pragma once
 
-// The link watchdog, ported from OpenSteer.Core/Watchdog.cs.
+// The link watchdog, ported from OpenSteer.Core/Watchdog.cs. See Watchdog and
+// fail-safe in docs/ARCHITECTURE.md.
 //
 // Pure: no FreeRTOS, no ESP-IDF, no clock of its own. The caller injects `now` as
 // a microsecond count, which is what lets the decay curve and both slews be
 // checked against tools/golden_vectors.json without a chip attached.
 //
 // It lives in its own pair of files rather than inside hid_task.cpp, for the same
-// reason OpenSteer.Core is a separate project from OpenSteer.Server: the moment
-// it is entangled with the hardware, the only way to find out whether it coasts
-// correctly is to unplug a phone and watch a car.
+// reason OpenSteer.Core is a separate project from OpenSteer.Server: once it
+// depends on the hardware, the only way to check that it coasts correctly is to
+// unplug a phone and watch a car.
 //
-// The fail-safe emits brake 0, not 65535. A full brake injected while the link is
-// down destabilises the tyre model and can spin a car mid-corner. Coasting with
-// the wheel centred and the throttle shut is recoverable.
+// The fail-safe emits brake 0, not 65535. A full brake applied while the link is
+// down destabilizes the tire model and can spin a car mid-corner. Coasting with
+// the wheel centered and the throttle shut is recoverable.
 
 #include <stdint.h>
 

@@ -18,7 +18,7 @@ public struct ButtonMask: OptionSet, Sendable, Equatable {
 ///
 /// A paddle tap can easily be shorter than one 8.3 ms uplink tick, so a naive
 /// level report would send the bit in zero packets and the shift would never
-/// happen. Worse, a single packet carrying the bit can be the one that gets lost.
+/// happen. A single packet carrying the bit can also be the one that gets lost.
 /// Three ticks means a tap survives both, and at 120 Hz it still clears in 25 ms,
 /// well under the time anyone can tap twice.
 public struct PulseLatch: Sendable {

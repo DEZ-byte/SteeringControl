@@ -20,12 +20,13 @@ public readonly record struct WatchdogEvent(
 /// <summary>
 /// Pure state machine: no I/O, no Win32, no clock of its own - the caller injects
 /// <c>now</c> as a tick count, so the whole decay curve and both slews are testable
-/// against tools/golden_vectors.json with a synthetic clock.
+/// against tools/golden_vectors.json with a synthetic clock. See Watchdog and
+/// fail-safe in docs/ARCHITECTURE.md.
 /// </summary>
 /// <remarks>
 /// The fail-safe emits <b>brake 0</b>, not 65535. A full brake applied while the
-/// link is down destabilises the tyre model and can spin a car mid-corner; coasting
-/// with the wheel centred is recoverable. On recovery, steering slews over
+/// link is down destabilizes the tire model and can spin a car mid-corner; coasting
+/// with the wheel centered is recoverable. On recovery, steering slews over
 /// 300 ms and the pedals over 100 ms, so a returning link never snaps an input.
 /// </remarks>
 public sealed class Watchdog
@@ -228,7 +229,7 @@ public sealed class Watchdog
                 _out.Throttle = DecayTo(_decayThr0, f);
                 _out.Brake = DecayTo(_decayBrk0, f);
 
-                // Steer is held, not decayed: centring the wheel mid-corner is worse
+                // Steer is held, not decayed: centering the wheel mid-corner is worse
                 // than holding the last known angle for 150 ms.
                 _out.Buttons = 0u;   // never let a shift paddle stick
                 break;

@@ -10,9 +10,10 @@ import OpenSteerCore
 /// packet. Sixteen slots at 120 Hz is 133 ms of headroom, far more than any send
 /// takes.
 ///
-/// Each slot is tracked individually rather than by a count of outstanding sends,
-/// because completions are not promised to arrive in the order the sends were
-/// made. A count would let a late completion free somebody else's slot.
+/// Each slot is tracked individually as busy or free. `UplinkSender` decides which
+/// slot a completion frees: its completion closure is shared, so it pairs each
+/// completion with a slot through a first-in-first-out token queue, relying on
+/// Network.framework delivering completions for one connection in send order.
 ///
 /// `Data(bytesNoCopy:deallocator:.none)` is what keeps the payload copy count at
 /// zero: the memory is ours, allocated once at start-up, and never freed by Data.
@@ -78,7 +79,7 @@ final class SlotRing {
         inFlight -= 1
     }
 
-    /// Cancelling a connection abandons every outstanding completion, so the
+    /// Canceling a connection abandons every outstanding completion, so the
     /// slots have to be taken back by hand or the ring stays permanently full.
     func releaseAll() {
         for i in busy.indices { busy[i] = false }

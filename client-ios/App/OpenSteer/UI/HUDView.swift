@@ -42,7 +42,7 @@ struct RpmBar: View {
     }
 }
 
-/// Small status pills. Grey means off, coloured means the game is reporting it.
+/// Small status pills. Gray means off, colored means the game is reporting it.
 struct TelemetryPills: View {
     let frame: TelemetryFrame
 
@@ -111,8 +111,8 @@ struct StatusBar: View {
         parts.append(String(format: "%.1f°", motion.thetaDegrees))
         parts.append("axis \(motion.steerI16)")
 
-        // Send interval and display cadence: device measurements with no other way
-        // to be read, so the numbers live here rather than in a log nobody opens.
+        // On-device measurements of send interval and display cadence. Neither can
+        // be read any other way, so the numbers are shown here rather than logged.
         if status.sendIntervalP50Ms > 0 {
             parts.append(String(format: "ia %.1f/%.1f ms",
                                 status.sendIntervalP50Ms, status.sendIntervalP99Ms))

@@ -36,7 +36,7 @@ final class SessionViewModel: ObservableObject {
     func makeController() -> LinkController {
         if let controller { return controller }
 
-        // Weak on purpose. The view model owns the controller, and the controller
+        // Weak: the view model owns the controller, and the controller
         // holds this closure, so a strong capture here would be a cycle that
         // keeps a live connection alive for the life of the process.
         let created = LinkController(store: store) { [weak self] status in
@@ -110,8 +110,7 @@ final class SessionViewModel: ObservableObject {
         }
     }
 
-    /// Held, not toggled. A handbrake that latches on is a handbrake you find out
-    /// about halfway down the next straight.
+    /// Held, not toggled, so the handbrake cannot be left on by mistake.
     func setHandbrake(_ held: Bool) {
         isHandbrakeHeld = held
         store.updateControls { $0.handbrake = held }

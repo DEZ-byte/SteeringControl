@@ -3,7 +3,7 @@
 // The on-board addressable LED, used as the only display this device has.
 //
 // There is no screen and, in the release build, no serial console either. The
-// colour is how a driver finds out whether the bridge is waiting for a phone,
+// color is how a driver finds out whether the bridge is waiting for a phone,
 // streaming, coasting, or has given up.
 
 #include <stdint.h>
@@ -17,7 +17,7 @@ namespace osteer {
 /// apparently dead. The console can set it and the value persists.
 void ledBegin();
 
-/// Colour by watchdog state, using the numeric value of `WdState` so this file
+/// Color by watchdog state, using the numeric value of `WdState` so this file
 /// does not have to include the watchdog.
 void setLedForState(uint8_t state);
 
@@ -25,7 +25,7 @@ void setLedForState(uint8_t state);
 /// connected to it.
 void setLedWaitingForStation();
 
-/// Pink, and it stays pink until reset: every later colour request is overridden,
+/// Pink, and it stays pink until reset: every later color request is overridden,
 /// so loop() and the Wi-Fi events cannot paint a dead bridge as a waiting one.
 void setLedFault();
 

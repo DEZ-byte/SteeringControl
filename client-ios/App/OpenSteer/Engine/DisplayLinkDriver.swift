@@ -4,8 +4,8 @@ import UIKit
 /// Drives the on-screen wheel from the display's own refresh clock.
 ///
 /// The steering loop runs at 120 Hz and never waits for the screen. The screen
-/// pulls the latest finished snapshot whenever it is about to draw, which is what
-/// keeps a slow frame from ever delaying a steering packet.
+/// pulls the latest finished snapshot whenever it is about to draw, so a slow
+/// frame never delays a steering packet.
 ///
 /// ProMotion needs two things together and gives 60 Hz if either is missing: the
 /// `CADisableMinimumFrameDurationOnPhone` key in the Info.plist, and an explicit

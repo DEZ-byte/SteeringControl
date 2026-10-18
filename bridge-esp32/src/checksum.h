@@ -2,9 +2,9 @@
 
 // XXH32 over exactly 28 bytes, with the OpenSteer seed.
 //
-// Host-compilable on purpose: this is the one function that has to agree with
-// three other implementations, and the way that is proved is by running it
-// against tools/golden_vectors.json rather than by reading it.
+// Host-compilable because this is the one function that has to agree with three
+// other implementations, and that is checked by running it against
+// tools/golden_vectors.json rather than by reading it.
 
 #include <stddef.h>
 #include <stdint.h>

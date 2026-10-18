@@ -3,16 +3,17 @@ import Foundation
 /// Pulls the steering angle out of a device attitude.
 ///
 /// Invariant I1. The angle is the pure twist about the device +Z axis, which is
-/// the screen normal pointing out at the driver. It is NOT `atan2(gravity.y,
-/// gravity.x)` and it is NOT a planar projection of any vector. Those two look
-/// right on a desk and fall apart in a chair: at an 85-degree recline the
-/// projection reads a real 10-degree turn as 7.71 degrees, and with the phone
-/// flat on a table it reads a 30-degree turn as exactly zero. Both failures are
-/// pinned as fixtures (TV3 and TV3b) so nobody can quietly reintroduce them.
+/// the screen normal pointing out at the driver. It is not `atan2(gravity.y,
+/// gravity.x)` and not a planar projection of any vector. The projection is right
+/// only while the phone turns in one plane. At an 85-degree recline, a 10-degree
+/// turn made together with a 20-degree sideways swing reads as 7.71 degrees, a
+/// 10-degree swing with no turn reads as 0.87 degrees, and with the phone flat on
+/// a table a 30-degree turn reads as zero. The first two are pinned as fixtures
+/// (TV3 and TV3b) so a regression fails the tests.
 public struct TwistExtractor: Sendable {
     /// Below this, `w² + z²` means the swing is near 180 degrees and the twist is
-    /// genuinely undefined rather than merely small. Holding the last angle is the
-    /// only honest answer; snapping to zero would yank the wheel.
+    /// undefined, not just small. The last angle is held, because snapping to
+    /// zero would jump the wheel to center.
     public static let degenerateEpsilon = 1e-9
 
     public private(set) var lastDegrees: Double = 0
@@ -50,7 +51,7 @@ public struct TwistExtractor: Sendable {
             z = -z
         }
 
-        // The twist quaternion is (w, 0, 0, z) normalised, but the normalisation
+        // The twist quaternion is (w, 0, 0, z) normalized, but the normalization
         // cancels inside atan2, so it is never computed.
         //
         // Grouped exactly as CPython's math.degrees(2 * atan2(z, w)) groups it, so

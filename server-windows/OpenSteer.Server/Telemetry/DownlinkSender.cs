@@ -69,9 +69,7 @@ public sealed class DownlinkSender : IDisposable
     /// Without this the sender sits out its idle wait before noticing anyone came
     /// back. Measured: a 600 ms uplink outage produced a 517 ms gap in force
     /// feedback, because the 350 ms the lease was genuinely dead was followed by
-    /// up to another idle period of obliviousness. Haptics returning late is worse
-    /// than haptics never starting, because the driver has already stopped
-    /// trusting the wheel by then.
+    /// up to one more idle period before the sender noticed.
     /// </remarks>
     public void OnLeaseAcquired() => _leaseAcquired.Set();
 
@@ -135,10 +133,10 @@ public sealed class DownlinkSender : IDisposable
                     break;
 
                 default:
-                    // Gone, frozen, or torn for longer than a glitch. Zeros are the
-                    // honest answer. Repeating the last good frame would leave an
-                    // engine note rumbling away after the game exited, which is worse
-                    // than silence because it is indistinguishable from a live one.
+                    // Gone, frozen, or torn for longer than a glitch: send zeros.
+                    // Repeating the last good frame would leave an engine note
+                    // rumbling after the game exited, indistinguishable from a live
+                    // one.
                     telemetry = default;
                     _lastGood = default;
                     _tornRepeats = 0;

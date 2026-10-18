@@ -42,7 +42,7 @@ final class HapticsEngine: @unchecked Sendable {
         queue.async { [weak self] in self?.stopOnQueue() }
     }
 
-    /// The whole point of the class, called from `ioQueue` on every downlink
+    /// The main entry point, called from `ioQueue` on every downlink
     /// frame. It hops to the haptics queue and returns immediately.
     func apply(_ output: HapticOutput) {
         guard isSupported else { return }
@@ -82,7 +82,7 @@ final class HapticsEngine: @unchecked Sendable {
                 guard let self else { return }
                 switch reason {
                 case .applicationSuspended, .engineDestroyed:
-                    // Expected. Backgrounding stops the engine on purpose.
+                    // Expected. Backgrounding stops the engine.
                     break
                 default:
                     self.queue.asyncAfter(deadline: .now() + 0.25) { [weak self] in
@@ -213,7 +213,7 @@ final class HapticsEngine: @unchecked Sendable {
     }
 
     /// Two taps 60 ms apart. Distinct from every single-tap event, so the driver
-    /// can tell a recentre from a gear change without looking.
+    /// can tell a recenter from a gear change without looking.
     private static func doubleTapPattern() throws -> CHHapticPattern {
         try CHHapticPattern(events: [
             CHHapticEvent(eventType: .hapticTransient, parameters: [

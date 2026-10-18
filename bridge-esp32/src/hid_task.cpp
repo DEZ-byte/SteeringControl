@@ -147,8 +147,8 @@ void postMail(const MailMsg& msg) {
     if (gMailbox == nullptr) {
         return;
     }
-    // Overwrite, not send. A packet waiting behind another packet is already the
-    // wrong answer: it says where the wheel was, not where it is.
+    // Overwrite, not send. A packet waiting behind another packet is already out
+    // of date: it says where the wheel was, not where it is.
     xQueueOverwrite(gMailbox, &msg);
 }
 

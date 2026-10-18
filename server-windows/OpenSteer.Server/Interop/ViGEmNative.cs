@@ -40,7 +40,7 @@ internal struct XusbReport
 
 /// <summary>
 /// Direct P/Invoke into the native ViGEmClient. The managed Nefarius.ViGEm.Client
-/// wrapper is deliberately not referenced: only the native library it ships is used,
+/// wrapper is not referenced: only the native library it ships is used,
 /// extracted once at setup, so there is no Costura assembly-resolve hook in the way
 /// and no managed dependency on the hot path.
 /// </summary>

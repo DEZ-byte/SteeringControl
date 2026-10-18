@@ -107,7 +107,7 @@ public sealed class StatsPrinter
                     Emit(Begin()
                         .Key("ev", "ALERT")
                         .Key("t", evt.TimestampNs)
-                        .Key("reason", "link lost - wheel centred, pedals released")
+                        .Key("reason", "link lost - wheel centered, pedals released")
                         .End());
                     break;
 
@@ -159,7 +159,7 @@ public sealed class StatsPrinter
             .Key("coalesced", delta.Coalesced)
             .Key("drain_cap", delta.DrainCap)
             .Key("drop", delta.Dropped)
-            // dup and stale are CUMULATIVE, matching the bad_* family. They are
+            // dup and stale are cumulative, matching the bad_* family. They are
             // reject counters, and a test asserting "50 duplicates were rejected"
             // needs a total, not whatever happened to land in the last second.
             .Key("dup", now.Duplicate)
@@ -196,7 +196,7 @@ public sealed class StatsPrinter
 
     /// <summary>
     /// Tiny writer for one flat object. Built by hand rather than with a serializer
-    /// because the output is a stable machine contract for scripts to parse, and
+    /// because the output is a stable machine contract that the tools/ probes parse, and
     /// because reflection-based serialization is the wrong dependency for a daemon
     /// that wants a small, predictable footprint.
     /// </summary>

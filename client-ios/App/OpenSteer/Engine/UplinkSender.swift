@@ -6,7 +6,7 @@ import OpenSteerCore
 ///
 /// Confined to `ioQueue`. The connection is started on that queue, so every
 /// Network.framework callback lands there too, which is the only placement the
-/// framework actually promises.
+/// framework guarantees.
 final class UplinkSender: @unchecked Sendable {
     /// Enough consecutive failures to mean the network really is gone rather than
     /// briefly unhappy. At 120 Hz this is 200 ms of solid errors.
@@ -39,8 +39,7 @@ final class UplinkSender: @unchecked Sendable {
     /// The completion closure is built once, here, and reused for every send.
     ///
     /// Building it per packet would allocate 120 closures a second on the hot
-    /// path for no reason. Network.framework retains whatever it is given, so a
-    /// fresh one each time is pure garbage.
+    /// path, because Network.framework retains whatever it is given.
     func attach(to connection: NWConnection) {
         self.connection = connection
         ring.releaseAll()
@@ -52,7 +51,7 @@ final class UplinkSender: @unchecked Sendable {
 
         // `cancel()` completes whatever was still outstanding with ECANCELED, and
         // those callbacks arrive after the next connection has already been
-        // attached. Stamping the closure is what keeps them from dequeuing the new
+        // attached. Stamping the closure keeps them from dequeuing the new
         // connection's tokens and freeing slots that are still on the wire.
         epoch &+= 1
         let attachedEpoch = epoch
@@ -136,8 +135,8 @@ final class UplinkSender: @unchecked Sendable {
 
         // Only the three errors that mean the path itself is gone count toward
         // tearing the link down. Everything else is transient: ENOBUFS in
-        // particular is the send buffer filling under congestion, which is the
-        // one moment you least want to drop a connection that is still working.
+        // particular is the send buffer filling under congestion, and a connection
+        // that is still working should not be dropped for it.
         guard Self.meansPathIsGone(error) else { return }
 
         consecutiveErrors += 1

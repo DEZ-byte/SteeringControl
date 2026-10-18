@@ -9,7 +9,7 @@ namespace OpenSteer.Core.Protocol;
 public static class ProtocolAsserts
 {
     // CA2255 warns that a module initializer in a library runs at a time the
-    // consumer does not control. That is precisely the intent here: if the wire
+    // consumer does not control. That is the intent here: if the wire
     // structs ever stop being 32 and 16 bytes, nothing that links this assembly
     // should be able to reach a socket. The check is branch-only and runs once.
 #pragma warning disable CA2255

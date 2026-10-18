@@ -38,9 +38,10 @@ public struct TelemetrySnapshot: Sendable, Equatable {
 
 /// What the screen is actually managing, as opposed to what it was asked for.
 ///
-/// The HUD shows `frameIntervalMs`: about 8.3 ms on a ProMotion panel, about
-/// 16.7 ms on a 60 Hz one. A phone showing 16.7 has silently ignored the frame
-/// rate range, which almost always means the Info.plist key is missing.
+/// The on-device display cadence check reads `frameIntervalMs`: about 8.3 ms on
+/// a ProMotion panel, about 16.7 ms on a 60 Hz one. A phone showing 16.7 has
+/// silently ignored the frame rate range, which almost always means the
+/// Info.plist key is missing.
 public struct DisplaySnapshot: Sendable, Equatable {
     public var frameIntervalMs: Double = 0
     public var frames: UInt64 = 0
@@ -55,7 +56,7 @@ public struct ControlInputs: Sendable, Equatable {
     public var brake: UInt16 = 0
     public var clutch: UInt16 = 0
 
-    /// Normalised copies, kept so the haptics policy can find the brake lockup
+    /// Normalized copies, kept so the haptics policy can find the brake lockup
     /// edge without dividing by 65535 on every tick.
     public var throttleNormalized: Double = 0
     public var brakeNormalized: Double = 0

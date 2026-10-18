@@ -1,13 +1,11 @@
 // OpenSteer ESP32-S3 bridge.
 //
-// A four-dollar board that turns a phone into a USB joystick with no driver, no
-// installer and no software running on the PC at all. It makes its own Wi-Fi
-// network, listens for the same 32-byte packets the Windows daemon does, and
-// presents itself over USB as a plain HID game controller.
+// Turns a phone into a USB joystick with no driver and no software on the PC.
+// The board makes its own Wi-Fi network, listens for the same 32-byte packets
+// the Windows daemon does, and presents itself over USB as a plain HID game
+// controller.
 //
-// Build and flash instructions are in README.md. Nothing here has been compiled:
-// there is no ESP32 toolchain on the machine this was written on, by the same
-// decision that removed the Visual Studio C++ tools from the project.
+// Build and flash instructions are in README.md.
 
 #include <Arduino.h>
 #include <USB.h>
@@ -23,9 +21,10 @@
 #include "src/wifi_ap.h"
 
 // The USB mode defines come from the board platform, not from this sketch. If
-// they are missing, the build has been given `build.extra_flags` by hand and has
-// wiped the whole group: `--build-property` replaces that key's value rather than
-// adding to it. Pass extra defines in `compiler.cpp.extra_flags` instead.
+// they are missing, the build was given `build.extra_flags` by hand. That key
+// expands to the core's own -DARDUINO_USB_MODE... flags, and arduino-cli's
+// --build-property replaces its whole value, so overriding it drops them. Extra
+// defines belong in compiler.cpp.extra_flags instead.
 #ifndef ARDUINO_USB_MODE
 #error "platform USB defines missing: never override build.extra_flags, use compiler.cpp.extra_flags"
 #endif
@@ -67,7 +66,7 @@ void setup() {
     osteer::joystick().begin();
     if (!osteer::joystick().registered()) {
         // Starting USB anyway would enumerate a joystick that reports nothing,
-        // with nothing on the host to say why. The fault light says it here.
+        // and the host would show no reason. The fault light shows it instead.
         osteer::setLedFault();
         return;
     }
@@ -123,10 +122,10 @@ void loop() {
 
 #if OSTEER_DEV_CDC
 
-// A deliberately tiny console. One line, one command, no arguments parser worth
-// the name. It exists to read counters during hardware testing and to set the
-// two things that cannot be guessed: which GPIO the LED is on, and the access
-// point password.
+// A minimal console: one command per line and no real argument parser. It exists
+// to read counters while testing the bridge on hardware, and to set the two
+// things that cannot be guessed: which GPIO the LED is on, and the access point
+// password.
 static void printStats() {
     const osteer::UplinkStats u = osteer::readUplinkStats();
     const osteer::HidStats h = osteer::readHidStats();

@@ -2,12 +2,12 @@ import Foundation
 
 /// What the phone sends, as a value type.
 ///
-/// This is deliberately NOT the wire layout. Swift pads a `UInt64` field to an
-/// 8-byte boundary, so a struct with these members in this order is 36 bytes, not
-/// 32. Rather than fight the layout with attributes that Swift does not have,
+/// This is not the wire layout. Swift pads a `UInt64` field to an 8-byte
+/// boundary, so a struct with these members in this order is 36 bytes, not 32.
+/// Rather than fight the layout with attributes that Swift does not have,
 /// every field is written to an explicit byte offset and the golden hex vectors
-/// are the proof that it came out right. There is no `MemoryLayout` assertion
-/// here on purpose; it would assert the wrong thing.
+/// check the result. There is no `MemoryLayout` assertion, because it would
+/// check the in-memory layout rather than the wire layout.
 public struct UplinkState: Sendable, Equatable {
     public var sequence: UInt16
     public var steer: Int16

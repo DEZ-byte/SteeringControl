@@ -6,8 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RootNamespace>OpenSteer.Core</RootNamespace>
-    <!-- Deliberately NO RuntimeIdentifier: Core stays portable so OpenSteer.Tests
-         can consume it on any host. Invariant I16: no Win32, no sockets, no Console. -->
+    <!-- No RuntimeIdentifier, so Core stays portable and OpenSteer.Tests can
+         consume it on any host. Invariant I16: no Win32, no sockets, no Console. -->
   </PropertyGroup>
 
 </Project>

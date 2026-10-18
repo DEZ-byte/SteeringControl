@@ -4,9 +4,9 @@
 //
 // Everything between the radio and the USB cable passes through this: the lwIP
 // callback overwrites a single slot, and the HID task reads it. There is no queue
-// and no backlog on purpose. If two packets arrive while the task is busy, the
-// older one is worthless, and delivering it would put the wheel where the
-// driver's hands were rather than where they are.
+// and no backlog: if two packets arrive while the task is busy, the older one is
+// out of date, and delivering it would put the wheel where the driver's hands
+// were rather than where they are.
 
 #include <stdint.h>
 
@@ -35,7 +35,7 @@ struct MailMsg {
 ///
 /// A function-local static rather than a global, so it is constructed the first
 /// time it is asked for. Its constructor registers a USB descriptor, and a global
-/// would run that during static initialisation, before `USB.VID()` has been
+/// would run that during static initialization, before `USB.VID()` has been
 /// called and in an order the language does not pin down.
 OpenSteerJoystick& joystick();
 

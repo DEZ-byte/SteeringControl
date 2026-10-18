@@ -10,7 +10,7 @@ public class AllowedSenderTests
     private static readonly byte[] Phone = { 192, 168, 4, 2 };
     private static readonly byte[] Stranger = { 192, 168, 4, 3 };
 
-    /// <summary>The bytes the hot loop hands over: a real socket address, serialised
+    /// <summary>The bytes the hot loop hands over: a real socket address, serialized
     /// by the framework exactly as ReceiveFrom fills one in.</summary>
     private static byte[] SocketAddressOf(string ip, int port)
     {

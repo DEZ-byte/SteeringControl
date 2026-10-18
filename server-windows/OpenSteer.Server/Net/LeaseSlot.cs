@@ -8,7 +8,7 @@ namespace OpenSteer.Server.Net;
 /// </summary>
 /// <remarks>
 /// The hot thread is the only writer, so it compares without taking the lock. The
-/// lock exists purely so the telemetry thread can copy the address out consistently
+/// lock exists only so the telemetry thread can copy the address out consistently
 /// while the hot thread is replacing it.
 /// </remarks>
 public sealed class LeaseSlot

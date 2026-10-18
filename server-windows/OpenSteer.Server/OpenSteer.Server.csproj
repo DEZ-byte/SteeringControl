@@ -3,17 +3,16 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <!-- net8.0-windows, not net8.0: this daemon calls ntdll, ViGEmBus and named
-         shared memory. Declaring the platform once here is the honest way to say
-         so, and it lets the analyzer verify every call site instead of needing a
-         SupportedOSPlatform attribute sprinkled on each type that touches Win32.
-         OpenSteer.Core stays plain net8.0 and portable. -->
+         shared memory. Declaring the platform once here lets the analyzer verify
+         every call site instead of needing a SupportedOSPlatform attribute on each
+         type that touches Win32. OpenSteer.Core stays plain net8.0 and portable. -->
     <TargetFramework>net8.0-windows</TargetFramework>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
 
-    <!-- Deployment: self-contained single-file ReadyToRun.
-         NOT Native AOT - PublishAot's link step needs MSVC link.exe + the Windows SDK,
-         which this machine deliberately does not install. PublishReadyToRun (crossgen2)
-         and PublishSingleFile (host bundler) need no C++ toolchain at all. -->
+    <!-- Deployment: self-contained single-file ReadyToRun, not Native AOT.
+         PublishAot's link step needs MSVC link.exe and the Windows SDK, and the build
+         is kept free of a C++ toolchain. PublishReadyToRun (crossgen2) and
+         PublishSingleFile (host bundler) need no C++ toolchain at all. -->
     <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
     <PublishReadyToRun>true</PublishReadyToRun>
@@ -40,10 +39,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Precompiled native client, extracted from the Nefarius.ViGEm.Client NuGet
-         package once at setup. ExcludeFromSingleFile keeps it a LOOSE file beside
-         the host, where NativeLibrary.SetDllImportResolver looks via
-         AppContext.BaseDirectory. Without it, IncludeNativeLibrariesForSelfExtract
+    <!-- Precompiled native client, extracted from the official
+         Nefarius.ViGEm.Client 1.21.256 NuGet package. ExcludeFromSingleFile keeps it
+         a loose file beside the host, where NativeLibrary.SetDllImportResolver
+         looks via AppContext.BaseDirectory. Without it, IncludeNativeLibrariesForSelfExtract
          bundles the DLL into the exe and extracts it under %TEMP%\.net at run time,
          where the resolver never looks. -->
     <None Include="..\..\third_party\vigem\ViGEmClient.dll"
@@ -53,9 +52,9 @@
           CopyToPublishDirectory="PreserveNewest"
           ExcludeFromSingleFile="true" />
 
-    <!-- Mode B is OPTIONAL: Memory Integrity / HVCI is enabled on this machine and
-         may refuse the vJoy driver. The Exists() guard keeps the build green when
-         vJoy is not installed. Set VJoyDll on the command line, e.g.
+    <!-- Mode B is optional: Memory Integrity (HVCI) may refuse the vJoy driver.
+         The Exists() guard keeps the build green when vJoy is not installed.
+         Set VJoyDll on the command line, e.g.
          dotnet build -p:VJoyDll="C:\Program Files\vJoy\x64\vJoyInterface.dll" -->
     <None Include="$(VJoyDll)"
           Link="vJoyInterface.dll"
@@ -68,7 +67,7 @@
   <!-- The committed native binary is pinned. A swapped or corrupted DLL fails the
        build instead of loading. The value is the SHA-256 recorded in
        THIRD_PARTY_NOTICES.md for ViGEmClient 1.21.233.0 (x64, 141,312 bytes); change
-       both together, and only after a deliberate upgrade. MSBuild compares the two
+       both together, and only when upgrading the DLL. MSBuild compares the two
        strings case-insensitively. Hooked to publish as well as build, so
        a publish that skips the build cannot ship a swapped file either. -->
   <Target Name="VerifyViGEmClientHash" BeforeTargets="BeforeBuild;PrepareForPublish"

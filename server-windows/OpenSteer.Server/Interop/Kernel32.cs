@@ -30,13 +30,13 @@ internal static partial class Kernel32
 
     /// <summary>
     /// Windows 11 quietly revokes a process's timer-resolution request once its
-    /// window is occluded or minimised - which is exactly this daemon's life, sitting
-    /// behind a fullscreen game. Opting out of that throttling keeps the 0.5 ms
-    /// resolution we just asked for.
+    /// window is occluded or minimized, which is this daemon's normal state behind a
+    /// fullscreen game. Opting out of that throttling keeps the 0.5 ms resolution we
+    /// just asked for.
     /// </summary>
     /// <remarks>
     /// StateMask 0 means "do not throttle". Passing IgnoreTimerResolution in
-    /// StateMask as well would opt IN, which is the opposite of what is wanted.
+    /// StateMask as well would opt in, the opposite of what is wanted.
     /// </remarks>
     internal static bool TryDisableTimerResolutionThrottling(out int lastError)
     {

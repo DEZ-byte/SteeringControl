@@ -38,7 +38,7 @@ public class ProtocolTests
     {
         // The number spells "OSTR" only when printed MSB-first. What is actually
         // transmitted is 52 54 53 4F, which a hex dump shows as "RTSO". Getting this
-        // backwards is the classic way to make two correct endpoints refuse each other.
+        // backwards makes two otherwise correct endpoints reject each other's frames.
         Span<byte> b = stackalloc byte[4];
         BinaryPrimitives.WriteUInt32LittleEndian(b, UplinkPacket.MagicValue);
         Assert.Equal(new byte[] { 0x52, 0x54, 0x53, 0x4F }, b.ToArray());

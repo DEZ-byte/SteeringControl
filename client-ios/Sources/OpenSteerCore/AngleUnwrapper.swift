@@ -17,7 +17,7 @@ public struct AngleUnwrapper: Sendable {
     public init() {}
 
     /// Forgets the history. Call this together with recalibration, or the first
-    /// sample after a recentre gets treated as a real jump.
+    /// sample after a recenter gets treated as a real jump.
     public mutating func reset() {
         previous = nil
         total = 0

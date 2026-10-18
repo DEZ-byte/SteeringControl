@@ -1,6 +1,8 @@
 import XCTest
 @testable import OpenSteerCore
 
+/// The haptics policy: pulse cadences, hysteresis, priority, the rate cap and
+/// muting.
 final class HapticPolicyTests: XCTestCase {
     private func ms(_ value: Double) -> UInt64 { UInt64(value * 1_000_000) }
 
@@ -75,7 +77,7 @@ final class HapticPolicyTests: XCTestCase {
     }
 
     /// Brake lockup has hysteresis. Without the lower rearm point a brake hovering
-    /// at the threshold would machine-gun the thud.
+    /// at the threshold would fire the thud over and over.
     func testLockupHysteresis() {
         var policy = HapticPolicy()
         var inputs = HapticInputs()
@@ -116,9 +118,9 @@ final class HapticPolicyTests: XCTestCase {
         XCTAssertGreaterThan(fired, 0)
     }
 
-    /// When the cap bites, the tyre-chatter noise is what gets dropped. The one
-    /// event that says the front wheels have stopped turning is not. Firing order
-    /// inside a single pass is what decides who survives.
+    /// When the cap bites, tire-chatter noise is dropped before the lockup event
+    /// that says the front wheels have stopped turning. Firing order inside a
+    /// single pass decides which events are kept.
     func testPriorityOrderPutsLockupFirstAndChatterLast() {
         var policy = HapticPolicy()
         var inputs = HapticInputs()
@@ -132,7 +134,7 @@ final class HapticPolicyTests: XCTestCase {
         XCTAssertEqual(output.transients, [.lockup, .shift, .abs, .tc])
     }
 
-    /// A recentre is a direct answer to a button the driver just pressed, so it is
+    /// A recenter is a direct answer to a button the driver just pressed, so it is
     /// confirmed even when everything else is silenced.
     func testRecentreIsConfirmedEvenWhenMuted() {
         var policy = HapticPolicy()
@@ -193,8 +195,8 @@ final class HapticPolicyTests: XCTestCase {
     }
 
     /// Rumble updates are capped at 30 Hz and only sent when something moved.
-    /// Pushing parameter changes at the full frame rate is how you make a haptics
-    /// engine stutter.
+    /// Pushing parameter changes at the full frame rate makes a haptics engine
+    /// stutter.
     func testRumbleUpdatesAreRateLimitedAndDeadbanded() {
         var policy = HapticPolicy()
         var t = 1.0

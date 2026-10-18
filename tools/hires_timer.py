@@ -15,10 +15,10 @@ TIMERR_NOERROR = 0
 
 
 class WinTimerPeriod:
-    """Raises the process timer resolution. Always paired, always restored.
+    """Raises the process timer resolution and restores it on exit.
 
     Since Windows 10 2004 this no longer changes the global resolution, only the
-    resolution guaranteed to the calling process, which is exactly what we want.
+    resolution guaranteed to the calling process, which is all the harness needs.
     """
 
     def __init__(self, period_ms: int = 1) -> None:
@@ -40,8 +40,8 @@ class WinTimerPeriod:
 def sleep_until(deadline_ns: int, spin_margin_ns: int = 1_500_000) -> int:
     """Sleep to just before the deadline, then spin. Returns wake lateness in ns.
 
-    The spin window is deliberately small. Measured on this machine a 2 ms sleep
-    lands at p50 2.73 ms / p99 3.16 ms, so 1.5 ms of margin covers the tail without
+    The spin window is small. Measured on this machine, a 2 ms sleep lands at
+    p50 2.73 ms / p99 3.16 ms, so 1.5 ms of margin covers the tail without
     burning a core. Pass spin_margin_ns=0 for a pure-sleep, zero-CPU cadence.
     """
     if spin_margin_ns > 0:

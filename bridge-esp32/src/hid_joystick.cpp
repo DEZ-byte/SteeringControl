@@ -88,8 +88,8 @@ bool OpenSteerJoystick::ready() const {
     //
     // Calling a static member through an object is legal either way, so this form
     // compiles whether the arduino-esp32 version in use declares these static or
-    // not. The qualified form only compiles if they are static, which makes it a
-    // build break waiting for whichever version disagrees.
+    // not. The qualified form only compiles if they are static, so it would break
+    // the build on any version where they are not.
     return hid_.ready();
 }
 

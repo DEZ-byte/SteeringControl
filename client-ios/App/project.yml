@@ -10,9 +10,9 @@
 #   xcodebuild -project OpenSteer.xcodeproj -scheme OpenSteer \
 #     -destination 'platform=iOS Simulator,name=iPhone 15 Pro' test
 #
-# OpenSteer.xcodeproj is generated, never committed. That is the point of keeping
-# the spec in version control instead: a project file is a merge-conflict machine
-# and nobody can review a diff of one.
+# OpenSteer.xcodeproj is generated, never committed. The spec is kept in version
+# control instead, because project files conflict on almost every merge and their
+# diffs cannot be reviewed.
 
 name: OpenSteer
 
@@ -21,8 +21,9 @@ options:
   #
   # Bundle identifiers are unique across all of Apple, not just across your
   # account. If signing fails with "failed to register bundle identifier",
-  # somebody else already owns com.opensteer.OpenSteer: change this line to
-  # something of your own and regenerate. It is the only edit needed.
+  # somebody else already owns com.opensteer.OpenSteer: change this line and the
+  # two PRODUCT_BUNDLE_IDENTIFIER values below to a prefix of your own, then
+  # regenerate.
   bundleIdPrefix: com.opensteer
   deploymentTarget:
     iOS: "17.0"
@@ -35,10 +36,10 @@ settings:
     # 4.2 and 5.0 and rejects anything else outright. The toolchain is pinned
     # separately by `// swift-tools-version:5.9` in Package.swift.
     SWIFT_VERSION: "5.0"
-    # Complete checking, not minimal. The whole design rests on which queue owns
-    # which data, and this is the compiler agreeing to check that claim.
+    # Complete checking, not minimal. The design depends on which queue owns which
+    # data, and complete checking has the compiler verify it.
     SWIFT_STRICT_CONCURRENCY: complete
-    # Automatic signing, and deliberately NO `DEVELOPMENT_TEAM` key.
+    # Automatic signing, with no `DEVELOPMENT_TEAM` key.
     #
     # Xcode then shows an empty Team dropdown under Signing & Capabilities, and
     # whoever opens the project picks their own, including a free Personal Team.
@@ -49,7 +50,7 @@ settings:
     # The choice is stored in OpenSteer.xcodeproj, which is generated and
     # gitignored, so `xcodegen generate` resets it. Regenerate only when this
     # spec changes, and re-pick the team afterwards. The simulator needs no team,
-    # so the whole test run works without picking one at all.
+    # so the simulator test run works without picking one.
     CODE_SIGN_STYLE: Automatic
     # iPhone only. There is no Taptic Engine in an iPad, so half the app would be
     # missing and the landscape layout assumes a phone-sized reach.
@@ -62,7 +63,7 @@ settings:
 
 packages:
   OpenSteerCore:
-    # ../Package.swift, the Foundation-only maths and wire library.
+    # ../Package.swift, the Foundation-only math and wire library.
     path: ..
 
 targets:
@@ -148,7 +149,7 @@ schemes:
       targets:
         - OpenSteerAppTests
         # The Core suite comes in through the local package, so one `xcodebuild
-        # test` run covers the app tests and the Core tests together.
+        # test` invocation runs the app tests and the core package tests together.
         - package: OpenSteerCore/OpenSteerCoreTests
     profile:
       config: Release

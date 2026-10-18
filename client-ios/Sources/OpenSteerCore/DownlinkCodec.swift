@@ -100,7 +100,7 @@ public enum DownlinkCodec {
     ///
     /// Written to match `DownlinkPacket.Sanitize` in the C# core branch for
     /// branch, including the fact that negative zero is passed through unchanged
-    /// rather than normalised. A NaN reaching the haptics engine would make the
+    /// rather than normalized. A NaN reaching the haptics engine would make the
     /// rumble intensity NaN and silence the motor with no error anywhere.
     public static func sanitize(_ slip: Float) -> Float {
         if slip.isNaN || slip.isInfinite { return 0 }

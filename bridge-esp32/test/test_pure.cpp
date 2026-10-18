@@ -2,9 +2,9 @@
 //
 // The checksum and the watchdog are the two pieces that must agree with the
 // Windows daemon to the least significant bit, and neither includes an Arduino,
-// FreeRTOS or lwIP header. That is on purpose: it means they can be compiled and
-// run on any machine, which is the only way to find out whether the bridge coasts
-// correctly without unplugging a phone and watching a car.
+// FreeRTOS or lwIP header, so they can be compiled and run on any machine, which
+// is the only way to check that the bridge coasts correctly without unplugging a
+// phone and watching a car.
 //
 // No test framework, so there is nothing to install:
 //
@@ -63,9 +63,8 @@ static void fromHex(const char* hex, uint8_t* out, size_t count) {
 // ------------------------------------------------------------------ checksum
 
 static void testChecksum() {
-    // The four published XXH32 reference vectors. This is the anchor for
-    // everything else: agreeing with the daemon only means something if both
-    // agree with a source outside the project.
+    // The four published XXH32 reference vectors. They check this
+    // implementation against an outside source, not only against the daemon.
     checkEq(xxh32(reinterpret_cast<const uint8_t*>(""), 0, 0), 0x02CC5D05,
             "XXH32 of empty input");
     checkEq(xxh32(reinterpret_cast<const uint8_t*>("a"), 1, 0), 0x550D7456,
@@ -178,7 +177,7 @@ static void testDecayCurve() {
         wd.evaluate(ms(point.silenceMs), out);
 
         checkEq(out.throttle, point.value, "decay value");
-        // Steering is held, not decayed. Centring the wheel mid-corner is worse
+        // Steering is held, not decayed. Centering the wheel mid-corner is worse
         // than keeping the last known angle.
         checkEq(out.steer, 12000, "steering was not held during the decay");
         checkEq(out.buttons, 0, "a paddle stuck through the decay");
@@ -194,10 +193,11 @@ static void testFailsafeCoasts() {
 
     checkEq(static_cast<int>(wd.state()), static_cast<int>(WdState::FailSafe), "state at 250 ms");
 
-    // A full brake injected while the link is down destabilises the tyre model and
-    // can spin a car mid-corner; coasting is recoverable.
+    // The fail-safe emits brake 0, not 65535. A full brake applied while the link
+    // is down destabilizes the tire model and can spin a car mid-corner; coasting
+    // is recoverable.
     checkEq(out.brake, 0, "FAIL-SAFE braked instead of coasting");
-    checkEq(out.steer, 0, "steering not centred");
+    checkEq(out.steer, 0, "steering not centered");
     checkEq(out.throttle, 0, "throttle not shut");
     checkEq(out.clutch, 0, "clutch not released");
     checkEq(out.buttons, 0, "buttons not cleared");
@@ -221,7 +221,7 @@ static void testDualSlew() {
     checkEq(out.steer, 0, "the first frame after recovery must start from zero");
     checkEq(out.throttle, 0, "the first frame after recovery must start from zero");
 
-    // Buttons are never slewed. Half a gear change is not a thing.
+    // Buttons are not slewed; a button has no value between on and off.
     checkEq(out.buttons, 0x5, "buttons were slewed");
 
     struct Point {
@@ -306,7 +306,7 @@ static void testLinkDownSkipsTheDecay() {
 
     checkEq(static_cast<int>(wd.state()), static_cast<int>(WdState::FailSafe),
             "a reported disconnection should go straight to FAIL-SAFE");
-    checkEq(out.steer, 0, "steering not centred");
+    checkEq(out.steer, 0, "steering not centered");
     checkEq(out.brake, 0, "coast, never brake");
 }
 

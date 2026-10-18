@@ -1,8 +1,8 @@
 """Mock Assetto Corsa physics page, so the FFB path can be tested without the game.
 
 Creates the same named shared-memory section Assetto Corsa publishes and writes a
-repeatable pattern into it at 60 Hz. The daemon cannot tell the difference, which is
-the point: the FFB tests run on a machine with no game installed.
+repeatable pattern into it at 60 Hz. The daemon cannot tell the difference, so the
+telemetry tests run on a machine with no game installed.
 
 Refuses to start if the section already exists. If the real game is running, writing
 into its page would corrupt live physics for whoever is driving.

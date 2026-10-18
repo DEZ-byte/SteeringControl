@@ -1,12 +1,13 @@
 import XCTest
 @testable import OpenSteerCore
 
+/// The checksum against the published XXH32 vectors and the three protocol
+/// known-answer tests.
 final class ChecksumTests: XCTestCase {
     private let golden = GoldenVectors.shared
 
-    /// The four published XXH32 reference vectors. This is the anchor for the
-    /// whole chain: without it, Swift agreeing with C# would only prove that both
-    /// were wrong in the same way.
+    /// The four published XXH32 reference vectors. Without them, Swift agreeing
+    /// with C# would not rule out both being wrong in the same way.
     func testGenericAgainstPublishedReferenceVectors() {
         XCTAssertEqual(golden.xxh32Generic.count, 4,
                        "expected the four published reference vectors")

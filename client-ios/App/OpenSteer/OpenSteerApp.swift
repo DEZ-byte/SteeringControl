@@ -6,8 +6,8 @@ import SwiftUI
 /// covered by the Info.plist keys and three SwiftUI modifiers on the root view:
 /// the status bar by `UIStatusBarHidden`, the home indicator by
 /// `persistentSystemOverlays(.hidden)`, and the edge swipes by
-/// `defersSystemGestures(on: .all)`. Two extra classes that exist only to
-/// override two properties are two more places for lifecycle bugs to hide.
+/// `defersSystemGestures(on: .all)`. Two extra classes that only override two
+/// properties would be more lifecycle code to get wrong.
 @main
 struct OpenSteerApp: App {
     @StateObject private var settings = AppSettings()

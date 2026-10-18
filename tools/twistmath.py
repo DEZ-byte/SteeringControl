@@ -3,7 +3,7 @@
 This is the Python twin of client-ios/Sources/OpenSteerCore/{Quat,TwistExtractor,
 AngleUnwrapper,SteerMapper}.swift. Invariant I1: the steering angle is the pure
 twist about the device +Z (screen normal). Naive atan2(gravity.y, gravity.x) and
-planar vector projections are FORBIDDEN and are only computed here to prove, in a
+planar vector projections are banned, and are computed here only to prove, in a
 regression test, that the banned method gives a different (wrong) answer.
 """
 
@@ -93,8 +93,8 @@ def gravity_in_body(q: Quat) -> tuple[float, float, float]:
 
 
 def naive_projection_deg(q_ref: Quat, q_cur: Quat) -> float:
-    """THE BANNED METHOD (invariant I1): atan2(gravity.y, gravity.x) in the device
-    frame, differenced against the same quantity at calibration. Present ONLY so a
+    """The banned method (invariant I1): atan2(gravity.y, gravity.x) in the device
+    frame, differenced against the same quantity at calibration. Present only so a
     regression test can prove the shipping math is not accidentally equal to it."""
     gr = gravity_in_body(q_ref)
     gc = gravity_in_body(q_cur)
