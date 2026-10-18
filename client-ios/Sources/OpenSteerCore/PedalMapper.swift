@@ -34,7 +34,7 @@ public struct PedalMapper: Sendable {
     public var isPressed: Bool { anchorY != nil }
 
     /// Screen coordinates grow downward, so pulling the thumb *down* the screen
-    /// gives a smaller y and a larger pedal value.
+    /// gives a larger y and a larger pedal value.
     public mutating func began(at y: Double) {
         anchorY = y
         value = 0
@@ -47,14 +47,14 @@ public struct PedalMapper: Sendable {
 
         // Ratchet both ways before measuring. Doing it in this order rather than
         // after gives the same clamped number with no one-frame lag.
-        if y < a - travel {
-            a = y + travel
-        } else if y > a {
+        if y > a + travel {
+            a = y - travel
+        } else if y < a {
             a = y
         }
 
         anchorY = a
-        value = min(1, max(0, (a - y) / travel))
+        value = min(1, max(0, (y - a) / travel))
     }
 
     /// Lifting the thumb releases the pedal at once. No easing: a throttle that
