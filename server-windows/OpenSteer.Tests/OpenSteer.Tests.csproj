@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
+    <!-- Audit transitive packages too, not only the three direct ones. -->
+    <NuGetAuditMode>all</NuGetAuditMode>
     <RootNamespace>OpenSteer.Tests</RootNamespace>
   </PropertyGroup>
 

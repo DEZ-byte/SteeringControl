@@ -1,0 +1,29 @@
+<Project>
+
+  <!-- A release build must not record where the machine that made it keeps the
+       source. Unmapped, the compiler writes the absolute path of every source file
+       into the PDB and the debug directory of the dll, and SourceLink writes the
+       repository root into its map; on Windows both start with
+       C:\Users\<account name>.
+
+       ContinuousIntegrationBuild turns on DeterministicSourcePaths, which maps the
+       git repository root to /_/ for the compiler (PathMap) and for SourceLink
+       alike, so a Release build reads /_/server-windows/... and two builds of one
+       commit come out byte-identical. Debug builds keep real paths so breakpoints
+       still bind to the files on disk. -->
+  <PropertyGroup>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- DeterministicSourcePaths finds the root through git. Built from a source zip
+       with no .git, there is nothing to find and the real paths would go in after
+       all, so map the checkout root by hand instead. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release' And !Exists('$(MSBuildThisFileDirectory)..\.git')">
+    <PathMap>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)..'))=/_/</PathMap>
+  </PropertyGroup>
+
+</Project>

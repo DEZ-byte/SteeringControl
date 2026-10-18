@@ -44,3 +44,87 @@ third_party/vigem/*
 
 # Test evidence logs are run output, not source
 docs/evidence/*.jsonl
+
+# ---------------------------------------------------------------------------
+# Defensive rules. Nothing below exists in the repository today; these stop a
+# future `git add -A` from publishing it.
+
+# The ESP32 bridge's Wi-Fi passphrase. Copy src/ap_secret.example.h to create it.
+bridge-esp32/src/ap_secret.h
+
+# Secrets, keys and signing material
+.env
+.env.*
+!.env.example
+secrets.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.cer
+*.crt
+*.der
+*.jks
+*.keystore
+*.kdbx
+*.ovpn
+*.mobileprovision
+*.provisionprofile
+ExportOptions.plist
+id_rsa*
+id_ed25519*
+id_ecdsa*
+.netrc
+.npmrc
+.pypirc
+
+# Logs, captures, local databases, archives, dumps
+*.log
+*.binlog
+*.har
+*.pcap
+*.pcapng
+*.sqlite
+*.sqlite3
+*.db
+*.sql
+*.dump
+*.bak
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+*.tgz
+
+# More IDE and editor state
+.idea/
+.history/
+*.swp
+*.swo
+*~
+xcuserdata/
+*.xcuserstate
+
+# Python environments and tool caches
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# iOS and firmware build products outside the ignored build trees
+*.ipa
+*.dSYM/
+bridge-esp32/build/
+*.elf
+*.map
+
+# Windows and macOS junk
+desktop.ini
+ehthumbs.db
+$RECYCLE.BIN/
+._*

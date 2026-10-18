@@ -1,0 +1,17 @@
+# Line endings are decided here, not by each machine's core.autocrlf, so a clone
+# on Windows, macOS or Linux checks out the same bytes. The repository stores LF.
+* text=auto eol=lf
+
+# Windows-native files keep CRLF in the working tree: Visual Studio solutions,
+# Windows scripts, and the Assetto Corsa preset, which sits beside the game's own
+# CRLF files. Keep this list and the CRLF sections of .editorconfig the same.
+*.sln text eol=crlf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+docs/sim-presets/**/*.ini text eol=crlf
+
+# Never touched.
+*.dll binary
+*.png binary
+*.jpg binary
