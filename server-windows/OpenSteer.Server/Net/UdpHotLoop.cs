@@ -39,6 +39,7 @@ public sealed class UdpHotLoop
     private readonly LogRing _log;
     private readonly bool _takeoverImmediate;
     private readonly int _traceInject;
+    private readonly AllowedSender _sources;
 
     private readonly byte[] _receiveBuffer = new byte[65536];
     private readonly SocketAddress _from = new(AddressFamily.InterNetwork);
@@ -70,7 +71,8 @@ public sealed class UdpHotLoop
     private long _injectCounter;
 
     public UdpHotLoop(Socket socket, IOutputSink sink, Watchdog watchdog, LeaseSlot lease,
-                      HotCounters counters, LogRing log, bool takeoverImmediate, int traceInject)
+                      HotCounters counters, LogRing log, bool takeoverImmediate, int traceInject,
+                      AllowedSender sources)
     {
         _socket = socket;
         _sink = sink;
@@ -80,6 +82,7 @@ public sealed class UdpHotLoop
         _log = log;
         _takeoverImmediate = takeoverImmediate;
         _traceInject = traceInject;
+        _sources = sources;
     }
 
     /// <summary>Set only in --echo-rtt mode. Assigned after construction because
@@ -222,6 +225,17 @@ public sealed class UdpHotLoop
                 case Verdict.BadPad: _counters.BadPad++; break;
             }
 
+            return false;
+        }
+
+        // Step 4b: --allow. AllowedSender reads the address out of the raw socket
+        // address (layout pinned by AllowedSenderTests against the framework's
+        // own). A source that is not allowed can never hold the lease, so it can
+        // never become the downlink target either. Counted as other_src: to the
+        // driver it is another sender. Without --allow this returns at once.
+        if (!_sources.AllowsSocketAddress(_from.Buffer.Span[.._from.Size]))
+        {
+            _counters.OtherSource++;
             return false;
         }
 

@@ -41,13 +41,17 @@
 
   <ItemGroup>
     <!-- Precompiled native client, extracted from the Nefarius.ViGEm.Client NuGet
-         package once at setup. Stays a LOOSE file beside the host on purpose so
-         NativeLibrary.SetDllImportResolver finds it via AppContext.BaseDirectory. -->
+         package once at setup. ExcludeFromSingleFile keeps it a LOOSE file beside
+         the host, where NativeLibrary.SetDllImportResolver looks via
+         AppContext.BaseDirectory. Without it, IncludeNativeLibrariesForSelfExtract
+         bundles the DLL into the exe and extracts it under %TEMP%\.net at run time,
+         where the resolver never looks. -->
     <None Include="..\..\third_party\vigem\ViGEmClient.dll"
           Link="ViGEmClient.dll"
           Condition="Exists('..\..\third_party\vigem\ViGEmClient.dll')"
           CopyToOutputDirectory="PreserveNewest"
-          CopyToPublishDirectory="PreserveNewest" />
+          CopyToPublishDirectory="PreserveNewest"
+          ExcludeFromSingleFile="true" />
 
     <!-- Mode B is OPTIONAL: Memory Integrity / HVCI is enabled on this machine and
          may refuse the vJoy driver. The Exists() guard keeps the build green when
@@ -57,7 +61,23 @@
           Link="vJoyInterface.dll"
           Condition="'$(VJoyDll)' != '' And Exists('$(VJoyDll)')"
           CopyToOutputDirectory="PreserveNewest"
-          CopyToPublishDirectory="PreserveNewest" />
+          CopyToPublishDirectory="PreserveNewest"
+          ExcludeFromSingleFile="true" />
   </ItemGroup>
+
+  <!-- The committed native binary is pinned. A swapped or corrupted DLL fails the
+       build instead of loading. The value is the SHA-256 recorded in
+       THIRD_PARTY_NOTICES.md for ViGEmClient 1.21.233.0 (x64, 141,312 bytes); change
+       both together, and only after a deliberate upgrade. MSBuild compares the two
+       strings case-insensitively. Hooked to publish as well as build, so
+       a publish that skips the build cannot ship a swapped file either. -->
+  <Target Name="VerifyViGEmClientHash" BeforeTargets="BeforeBuild;PrepareForPublish"
+          Condition="Exists('..\..\third_party\vigem\ViGEmClient.dll')">
+    <GetFileHash Files="..\..\third_party\vigem\ViGEmClient.dll" Algorithm="SHA256">
+      <Output TaskParameter="Hash" PropertyName="_ViGEmClientSha256" />
+    </GetFileHash>
+    <Error Condition="'$(_ViGEmClientSha256)' != '00303F99E1968D523FBD08A7C691D60D145B7335059EC593947841D124C10875'"
+           Text="third_party\vigem\ViGEmClient.dll has SHA-256 $(_ViGEmClientSha256), not the value pinned in THIRD_PARTY_NOTICES.md." />
+  </Target>
 
 </Project>

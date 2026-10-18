@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Diagnostics;
+using System.Net;
 using System.Net.Sockets;
 using System.Runtime;
 using System.Runtime.InteropServices;
@@ -57,12 +58,32 @@ internal static class Program
 
         Console.Out.WriteLine($"UDP {config.Bind}:{config.Port} listening");
 
+        AllowedSender sources = config.Sources;
+
+        if (sources.IsRestricted)
+        {
+            Console.Out.WriteLine($"allow: {sources} only");
+        }
+        else if (!IPAddress.IsLoopback(config.Bind))
+        {
+            // The uplink is checksummed, not authenticated. Say so where the person
+            // who started the daemon will see it, not only in the docs. Any bind
+            // other than loopback is reachable from the network, not just 0.0.0.0.
+            string where = config.Bind.Equals(IPAddress.Any)
+                ? "on every interface"
+                : $"on {config.Bind}";
+            Console.Error.WriteLine(
+                $"warning: listening {where} with no --allow. Any host that can reach "
+              + $"UDP {config.Port} can drive the wheel. Use --allow <phone-ip> on any "
+              + "network you do not own.");
+        }
+
         var counters = new HotCounters();
         var lease = new LeaseSlot();
         var log = new LogRing();
         var watchdog = new Watchdog(Stopwatch.Frequency);
         var loop = new UdpHotLoop(socket, sink, watchdog, lease, counters, log,
-                                  config.TakeoverImmediate, config.TraceInject);
+                                  config.TakeoverImmediate, config.TraceInject, sources);
         var stats = new StatsPrinter(loop, counters, lease, log, config.StatsJson);
 
         var reader = new AcSharedMemoryReader(config.SlipFull);

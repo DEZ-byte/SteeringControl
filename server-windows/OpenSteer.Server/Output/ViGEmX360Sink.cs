@@ -42,8 +42,10 @@ public sealed class ViGEmX360Sink : IOutputSink
         }
         catch (DllNotFoundException)
         {
-            error = "ViGEmClient.dll not found next to the executable. "
-                  + "Extract it from the Nefarius.ViGEm.Client NuGet package into third_party/vigem.";
+            // The resolver loads it from beside the exe or not at all, so this is
+            // the only place a missing or unloadable DLL surfaces.
+            error = "ViGEmClient.dll is missing beside the executable or failed to load. "
+                  + "It ships in third_party/vigem; rebuild or republish so it is copied there.";
             return false;
         }
 

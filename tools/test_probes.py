@@ -1,4 +1,4 @@
-"""End-to-end guards for the lease hijack and the stale-telemetry loop.
+"""End-to-end guards for the lease hijack, the stale-telemetry loop, and --allow.
 
 The C# unit tests cover the decisions, in PassLease and CounterLiveness. By
 invariant I16 they cannot reference the daemon, so they cannot see the wiring:
@@ -21,12 +21,18 @@ from __future__ import annotations
 
 import json
 import os
+import signal
 import socket
 import subprocess
 import sys
+import time
 import unittest
 
 TOOLS = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, TOOLS)
+
+import osproto as p  # noqa: E402  (after the path insert, as in the other tools)
+
 ROOT = os.path.dirname(TOOLS)
 SERVER = os.path.join(ROOT, "server-windows")
 BIN = os.path.join(SERVER, "OpenSteer.Server", "bin", "Release", "net8.0-windows", "win-x64")
@@ -107,6 +113,68 @@ class ProbeRegressionTests(unittest.TestCase):
         self.assertFalse(verdict["inconclusive"], self.explain(proc))
         self.assertFalse(verdict["reproduced"], self.explain(proc))
         self.assertEqual(proc.returncode, 0, self.explain(proc))
+
+    def drive(self, extra: list[str], frames: int = 120) -> tuple[int, int, str]:
+        """Starts the daemon headless with extra flags, streams valid frames to it
+        from 127.0.0.1, and returns (accepted, other_src, stderr)."""
+        port = free_udp_port()
+        proc = subprocess.Popen(
+            [EXE, "--mode", "none", "--stats-json", "1", "--port", str(port)] + extra,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
+        try:
+            deadline = time.perf_counter() + 10
+            ready = False
+            while time.perf_counter() < deadline:
+                line = proc.stdout.readline()
+                if not line:
+                    break
+                if "listening" in line:
+                    ready = True
+                    break
+            self.assertTrue(ready, "daemon never reported a bound socket")
+
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                s.bind(("127.0.0.1", 0))
+                for i in range(frames):
+                    s.sendto(p.pack_uplink(seq=i, steer=8000, throttle=0, brake=0,
+                                           clutch=0, buttons=0,
+                                           ts_ns=time.perf_counter_ns()),
+                             ("127.0.0.1", port))
+                    time.sleep(1 / 120)
+            time.sleep(1.3)  # let at least one stats window close
+        finally:
+            proc.send_signal(signal.CTRL_BREAK_EVENT)
+            try:
+                out, err = proc.communicate(timeout=10)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                out, err = proc.communicate()
+
+        accepted = other = 0
+        for line in out.splitlines():
+            if line.startswith("{"):
+                stats = json.loads(line)
+                if stats.get("ev") == "STATS":
+                    accepted += stats.get("acc", 0)
+                    other = max(other, stats.get("other_src", 0))
+        return accepted, other, err
+
+    def test_allow_refuses_every_other_sender(self) -> None:
+        # Positive control first: the same frames from the same address are
+        # accepted when that address is the allowed one, so a refusal below means
+        # --allow refused them, not that the stream never arrived.
+        accepted, other, _ = self.drive(["--allow", "127.0.0.1"])
+        self.assertGreater(accepted, 0)
+        self.assertEqual(other, 0)
+
+        accepted, other, err = self.drive(["--allow", "127.0.0.2"])
+        self.assertEqual(accepted, 0, "a sender that is not allowed moved the wheel")
+        self.assertGreater(other, 0)
+        self.assertNotIn("warning", err)
+
+        _, _, err = self.drive([], frames=1)
+        self.assertIn("no --allow", err, "the open-door warning is missing")
 
 
 if __name__ == "__main__":

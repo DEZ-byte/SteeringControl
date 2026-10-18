@@ -1,4 +1,5 @@
 using System.Net;
+using OpenSteer.Core;
 
 namespace OpenSteer.Server;
 
@@ -17,6 +18,10 @@ public enum OutputMode
 public sealed class HostConfig
 {
     public IPAddress Bind { get; private set; } = IPAddress.Any;
+
+    /// <summary>The one phone allowed to drive, from --allow. Without it any sender
+    /// that can reach the port may drive, which is only safe on a network you own.</summary>
+    public AllowedSender Sources { get; private set; } = AllowedSender.Anyone;
 
     public int Port { get; private set; } = 9999;
 
@@ -56,6 +61,15 @@ public sealed class HostConfig
                     }
 
                     config.Bind = bind;
+                    break;
+
+                case "--allow":
+                    if (!AllowedSender.TryParse(Next(), out AllowedSender sources, out error))
+                    {
+                        return false;
+                    }
+
+                    config.Sources = sources;
                     break;
 
                 case "--port":
@@ -137,6 +151,9 @@ public sealed class HostConfig
         OpenSteer host daemon
 
           --bind <ip>            interface to listen on (default 0.0.0.0)
+          --allow <ip>           only this phone may drive (default: any sender
+                                 that can reach the port; set it on any network
+                                 you do not own)
           --port <n>             UDP port (default 9999)
           --mode a|b|none        a = ViGEmBus Xbox 360 (default)
                                  b = vJoy, optional, not implemented yet

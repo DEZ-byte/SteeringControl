@@ -1,6 +1,12 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 
+// No native import in this assembly may fall through to the current directory or
+// PATH, where a planted DLL of the same name would be loaded instead (CWE-427).
+// SafeDirectories is the application folder plus System32: kernel32 and ntdll are
+// found there, and ViGEmClient.dll is loaded by the resolver below or not at all.
+[assembly: DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
+
 namespace OpenSteer.Server.Interop;
 
 /// <summary>XUSB_REPORT from ViGEm/Common.h. 12 bytes, passed by value.</summary>
@@ -52,10 +58,16 @@ internal static partial class ViGEmNative
     private static bool _resolverInstalled;
 
     /// <summary>
-    /// Teaches the runtime to look beside the host executable. Needed because
-    /// PublishSingleFile changes where loose files sit relative to the running
-    /// assembly, so default probing alone is not dependable.
+    /// Loads ViGEmClient.dll from beside the host executable and from nowhere else.
+    /// The publish keeps it a loose file there (ExcludeFromSingleFile in the csproj);
+    /// without that, the single-file bundle would extract it to a temp folder this
+    /// probe never looks in.
     /// </summary>
+    /// <remarks>
+    /// Fails closed. Returning <c>nint.Zero</c> would hand the load back to default
+    /// probing, which is the search this resolver exists to avoid. The exception
+    /// reaches <c>ViGEmX360Sink.Open</c>, which reports it.
+    /// </remarks>
     internal static void InstallResolver()
     {
         if (_resolverInstalled)
@@ -81,7 +93,7 @@ internal static partial class ViGEmNative
                     return handle;
                 }
 
-                return nint.Zero;
+                throw new DllNotFoundException($"{candidate} is missing or failed to load.");
             });
     }
 
