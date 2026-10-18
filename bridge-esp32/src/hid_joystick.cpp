@@ -61,10 +61,12 @@ static_assert(sizeof(kJoystickReportDescriptor) == kJoystickReportDescriptorSize
               "the descriptor length and the declared size have diverged");
 
 OpenSteerJoystick::OpenSteerJoystick() {
+    // Only one instance may put its descriptor in the stack. The flag follows the
+    // result rather than the attempt, so a refusal is not recorded as a success.
     static bool registered = false;
     if (!registered) {
-        registered = true;
-        hid_.addDevice(this, sizeof(kJoystickReportDescriptor));
+        registered = hid_.addDevice(this, sizeof(kJoystickReportDescriptor));
+        registered_ = registered;
     }
 }
 

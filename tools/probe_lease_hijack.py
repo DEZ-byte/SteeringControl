@@ -55,11 +55,11 @@ DEFAULT_EXE = os.path.join(
 class Daemon:
     """Runs the host headless and collects its 1 Hz stats lines."""
 
-    def __init__(self, exe: str) -> None:
+    def __init__(self, exe: str, port: int) -> None:
         self.stats: list[dict] = []
         self.lines: list[str] = []
         self.proc = subprocess.Popen(
-            [exe, "--mode", "none", "--stats-json", "1"],
+            [exe, "--mode", "none", "--stats-json", "1", "--port", str(port)],
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
         threading.Thread(target=self._pump, daemon=True).start()
@@ -114,7 +114,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     dst = ("127.0.0.1", args.port)
-    daemon = Daemon(args.exe)
+    daemon = Daemon(args.exe, args.port)
     stop = threading.Event()
 
     try:
@@ -163,12 +163,22 @@ def main(argv: list[str] | None = None) -> int:
 
         stolen = [w for w in windows if str(w.get("src", "")).endswith(stray_tag)]
         rejected = max((w.get("other_src", 0) for w in windows), default=0)
+        reproduced = bool(stolen) or rejected > 0
+
+        # The positive control. A run in which no packet reached the daemon - wrong
+        # port, a crashed daemon, no stats at all - has no stray in any window and
+        # no rejections, so without this it would print NOT REPRODUCED. Such a run
+        # passes while proving nothing: src=null throughout.
+        held = [w for w in windows
+                if str(w.get("src", "")).endswith(driver_tag) and (w.get("acc") or 0) > 0]
 
         if args.json:
             print(json.dumps({
-                "reproduced": bool(stolen) or rejected > 0,
+                "reproduced": reproduced,
+                "inconclusive": not reproduced and not held,
                 "driver_port": driver_port, "stray_port": stray_port,
                 "windows_with_stolen_lease": len(stolen),
+                "windows_driver_held_lease": len(held),
                 "driver_packets_rejected": rejected,
                 "windows": [{k: w.get(k) for k in
                              ("src", "other_src", "acc", "bad_magic", "drain_cap")}
@@ -184,11 +194,17 @@ def main(argv: list[str] | None = None) -> int:
         # Strays fail the magic check, so they land in bad_magic, never other_src.
         # A nonzero other_src therefore means the DRIVER's own valid packets were
         # turned away, which only happens if the lease moved.
-        if stolen or rejected > 0:
+        if reproduced:
             if not args.json:
                 print(f"REPRODUCED  the stray held the lease in {len(stolen)} window(s) "
                       f"and {rejected} of the driver's packets were rejected")
             return 1
+
+        if not held:
+            if not args.json:
+                print("INCONCLUSIVE  the driver never held the lease, so nothing was "
+                      "tested. Check the port and that the daemon stayed up.")
+            return 2
 
         if not args.json:
             print("NOT REPRODUCED  the lease stayed with the driver in every window, "

@@ -65,6 +65,12 @@ void setup() {
     // USB.begin() gives a device that enumerates without the interface, which
     // looks to Windows like a broken descriptor rather than a late one.
     osteer::joystick().begin();
+    if (!osteer::joystick().registered()) {
+        // Starting USB anyway would enumerate a joystick that reports nothing,
+        // with nothing on the host to say why. The fault light says it here.
+        osteer::setLedFault();
+        return;
+    }
 #if OSTEER_DEV_CDC
     USBSerial.begin();
 #endif

@@ -86,15 +86,17 @@ def main(argv: list[str] | None = None) -> int:
 
     dst = ("127.0.0.1", args.port)
     states: list[str] = []
+    lines: list[str] = []
 
     proc = subprocess.Popen(
-        [args.exe, "--mode", "none", "--stats-json", "1"],
+        [args.exe, "--mode", "none", "--stats-json", "1", "--port", str(args.port)],
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
         creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
 
     def pump() -> None:
         for raw in proc.stdout:
             line = raw.decode("utf-8", "replace").rstrip()
+            lines.append(line)
             if line.startswith("{"):
                 try:
                     obj = json.loads(line)
@@ -109,6 +111,11 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         time.sleep(1.5)
+        if not any("listening" in line for line in lines):
+            # Typically the port is taken, by a daemon that is already running.
+            # Without this check the probe would talk to that one instead.
+            print("daemon never reported a bound socket", file=sys.stderr)
+            return 2
 
         # Written once and never again, which is exactly what a paused game leaves
         # behind.
@@ -129,7 +136,8 @@ def main(argv: list[str] | None = None) -> int:
                 seq = (seq + 1) & 0xFFFF
                 time.sleep(1 / 120)
 
-        threading.Thread(target=feed, daemon=True).start()
+        feeder = threading.Thread(target=feed, daemon=True)
+        feeder.start()
 
         timeline: list[tuple[float, int]] = []
         last = None
@@ -148,6 +156,9 @@ def main(argv: list[str] | None = None) -> int:
                 last = rpm
 
         stop.set()
+        # The feeder must be done with the socket before it is closed, or its next
+        # sendto raises inside the thread and prints a traceback after the verdict.
+        feeder.join(timeout=1.0)
         phone.close()
     finally:
         stop.set()
@@ -178,9 +189,14 @@ def main(argv: list[str] | None = None) -> int:
 
     reproduced = revivals > 0
 
+    # The positive control. If the frozen value never arrived, telemetry never
+    # flowed and there was nothing that could revive, so a quiet run proves nothing.
+    inconclusive = not seen_frozen
+
     if args.json:
-        print(json.dumps({"reproduced": reproduced, "revivals": revivals,
-                          "timeline": timeline, "shm_states": states}))
+        print(json.dumps({"reproduced": reproduced, "inconclusive": inconclusive,
+                          "revivals": revivals, "timeline": timeline,
+                          "shm_states": states}))
     else:
         print("rpm transitions (seconds, rpm):", timeline)
         print("shm state per window:", states)
@@ -188,11 +204,16 @@ def main(argv: list[str] | None = None) -> int:
         if reproduced:
             print(f"REPRODUCED  the frozen engine speed came back {revivals} time(s) "
                   "after being dropped")
+        elif inconclusive:
+            print(f"INCONCLUSIVE  the frozen value {FROZEN_RPM} never arrived, so "
+                  "nothing was tested")
         else:
             print("NOT REPRODUCED  the frozen page was dropped once and stayed "
                   "dropped; zeros held")
 
-    return 1 if reproduced else 0
+    if reproduced:
+        return 1
+    return 2 if inconclusive else 0
 
 
 if __name__ == "__main__":

@@ -54,8 +54,12 @@ public sealed class UdpHotLoop
     /// real one moves the lease to the wrong endpoint. Every genuine packet after
     /// that counts as other_src and the downlink goes to a machine that is not
     /// driving.
+    /// <para>Sized like <c>_from</c>, which it is copied from.</para>
     /// </remarks>
     private readonly SocketAddress _acceptedFrom = new(AddressFamily.InterNetwork);
+
+    /// <summary>The lease and reseed decisions for the pass in progress.</summary>
+    private readonly PassLease _pass = new();
 
     private readonly LatencyHistogram _interArrival = new();
     private readonly LatencyHistogram _pipeline = new();
@@ -128,8 +132,8 @@ public sealed class UdpHotLoop
             long passStart = now;
 
             bool fresh = false;
-            bool leaseDirty = false;
             int drained = 0;
+            _pass.Begin();
             UplinkPacket newest = default;
 
             // Burst drain. Wi-Fi delivers packets in bunches; replaying a bunch one
@@ -152,7 +156,7 @@ public sealed class UdpHotLoop
 
                 drained++;
 
-                if (TryAccept(_receiveBuffer.AsSpan(0, received), now, ref newest, ref leaseDirty))
+                if (TryAccept(_receiveBuffer.AsSpan(0, received), now, ref newest))
                 {
                     if (fresh)
                     {
@@ -175,7 +179,7 @@ public sealed class UdpHotLoop
 
             if (fresh)
             {
-                if (leaseDirty)
+                if (_pass.Claimed)
                 {
                     _lease.Publish(_acceptedFrom, now);
                     Downlink?.OnLeaseAcquired();
@@ -203,8 +207,7 @@ public sealed class UdpHotLoop
         }
     }
 
-    private bool TryAccept(ReadOnlySpan<byte> frame, long now, ref UplinkPacket newest,
-                           ref bool leaseDirty)
+    private bool TryAccept(ReadOnlySpan<byte> frame, long now, ref UplinkPacket newest)
     {
         // Steps 1-4: size, magic, checksum, reserved padding.
         Verdict verdict = PacketValidator.CheckFrame(frame);
@@ -222,44 +225,43 @@ public sealed class UdpHotLoop
             return false;
         }
 
-        // Step 5: the lease. Socket-typed, so it lives here rather than in Core.
+        // Step 5: the lease. The address comparisons are socket-typed, so they live
+        // here; what they mean is decided by PassLease in Core, where it is tested.
         //
         // Once the lease has been claimed earlier in this same pass, the claimant
         // is the authority for the rest of it, not the published lease. The
         // published one is still stale - it is only written after the loop - so
         // checking it again would let every later packet in the burst re-claim
-        // from a different address, reseeding the sequence each time and leaving
-        // whichever arrived last in possession.
-        bool sameEndpoint = leaseDirty
-            ? SameAddress(_acceptedFrom, _from)
+        // from a different address, leaving whichever arrived last in possession.
+        //
+        // Equals compares the address bytes and allocates nothing. Never ==, which
+        // is reference equality on this class.
+        bool failSafe = _watchdog.State == WatchdogState.FailSafe;
+        bool sameEndpoint = _pass.Claimed
+            ? _acceptedFrom.Equals(_from)
             : _lease.Matches(_from);
 
-        if (!sameEndpoint)
+        LeaseVerdict lease = _pass.Admit(sameEndpoint, _lease.HasPeer, _takeoverImmediate,
+                                         failSafe);
+
+        if (lease == LeaseVerdict.Rejected)
         {
-            bool mayTakeOver = !leaseDirty
-                            && (!_lease.HasPeer
-                                || _takeoverImmediate
-                                || _watchdog.State == WatchdogState.FailSafe);
-
-            if (!mayTakeOver)
-            {
-                _counters.OtherSource++;
-                return false;
-            }
-
-            leaseDirty = true;
+            _counters.OtherSource++;
+            return false;
         }
 
         // Step 6: sequence. Reseed whenever continuity cannot be assumed - a new
         // endpoint, a fail-safe, or a gap long enough that the phone may have
-        // restarted and come back at sequence zero.
+        // restarted and come back at sequence zero. The last two describe the
+        // pass rather than the packet, so they reseed once per pass, not once per
+        // packet: a reseed accepts any sequence, and doing it for every packet in a
+        // burst would let an older one later in the burst move the wheel back.
         ushort sequence = BinaryPrimitives.ReadUInt16LittleEndian(frame.Slice(4, 2));
 
         bool longGap = _lastReceiveTicks != 0
                     && (now - _lastReceiveTicks) / TicksPerUs > Watchdog.SoftMs * 1000.0;
 
-        if (leaseDirty || !_validator.HasSequence || longGap
-            || _watchdog.State == WatchdogState.FailSafe)
+        if (_pass.ShouldReseed(lease, _validator.HasSequence, longGap, failSafe))
         {
             _validator.Reseed(sequence);
             _counters.Reseeds++;
@@ -287,38 +289,11 @@ public sealed class UdpHotLoop
         newest = MemoryMarshal.Read<UplinkPacket>(frame);
 
         // Same reasoning, one level up: remember where this packet came from while
-        // we still know, because _from will not survive the next iteration.
-        CopyAddress(_from, _acceptedFrom);
+        // we still know, because _from will not survive the next iteration. Size
+        // goes with the bytes so the two compare equal. Allocates nothing.
+        _from.Buffer.Span[.._from.Size].CopyTo(_acceptedFrom.Buffer.Span);
+        _acceptedFrom.Size = _from.Size;
         return true;
-    }
-
-    /// <summary>Byte comparison of two addresses. Never <c>==</c>, which is
-    /// reference equality on this class.</summary>
-    private static bool SameAddress(SocketAddress a, SocketAddress b)
-    {
-        if (a.Size != b.Size)
-        {
-            return false;
-        }
-
-        for (int i = 0; i < a.Size; i++)
-        {
-            if (a[i] != b[i])
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>Copies into a preallocated destination; allocates nothing.</summary>
-    private static void CopyAddress(SocketAddress source, SocketAddress destination)
-    {
-        for (int i = 0; i < source.Size && i < destination.Size; i++)
-        {
-            destination[i] = source[i];
-        }
     }
 
     /// <summary>

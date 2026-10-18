@@ -46,6 +46,11 @@ public:
 
     bool ready() const;
 
+    /// False if the USB stack refused this joystick's report descriptor. The board
+    /// would still enumerate, as an HID interface with no report descriptor that
+    /// never sends a thing, so setup() checks this before starting USB.
+    bool registered() const { return registered_; }
+
     // USBHIDDevice
     uint16_t _onGetDescriptor(uint8_t* buffer) override;
 
@@ -54,6 +59,8 @@ private:
     /// version, `USBHID::ready()` may be a non-const instance method. Nothing here
     /// mutates observable state; the qualifier only keeps both shapes compiling.
     mutable USBHID hid_;
+
+    bool registered_ = false;
 };
 
 /// The report descriptor, exposed so a test can assert its length and shape.

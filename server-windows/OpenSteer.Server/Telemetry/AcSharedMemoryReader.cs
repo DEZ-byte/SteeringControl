@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO.MemoryMappedFiles;
+using OpenSteer.Core;
 
 namespace OpenSteer.Server.Telemetry;
 
@@ -13,6 +14,20 @@ public enum ShmState : byte
 
     /// <summary>Mapping open but frozen. The game exited or paused.</summary>
     Stale,
+}
+
+/// <summary>What one read of the physics page produced.</summary>
+public enum ShmRead : byte
+{
+    /// <summary>A consistent sample from a page whose counter is moving.</summary>
+    Fresh = 0,
+
+    /// <summary>The page is live, but the game rewrote it on every attempt, so no
+    /// consistent sample was taken.</summary>
+    Torn,
+
+    /// <summary>No game, or a frozen page.</summary>
+    Unavailable,
 }
 
 /// <summary>One physics sample, already normalised for the wire.</summary>
@@ -60,8 +75,8 @@ public sealed class AcSharedMemoryReader : IDisposable
 
     private MemoryMappedFile? _file;
     private MemoryMappedViewAccessor? _view;
-    private int _lastPacketId = -1;
-    private long _lastChangeTicks;
+    /// <summary>Survives every close and re-open. See CounterLiveness for why.</summary>
+    private readonly CounterLiveness _liveness = new((long)(StaleAfterMs * TicksPerMs));
     private long _lastProbeTicks;
     private bool _loggedMissing;
 
@@ -78,11 +93,18 @@ public sealed class AcSharedMemoryReader : IDisposable
     public void ClearStateChanged() => StateChanged = false;
 
     /// <summary>
-    /// Reads one sample. Returns false when the game is absent or frozen, in which
-    /// case the caller should send zeros rather than the last known values: a stale
-    /// RPM rumbling away after the game exits is worse than silence.
+    /// Reads one sample. <paramref name="telemetry"/> is only meaningful on
+    /// <see cref="ShmRead.Fresh"/>; it is zeros otherwise.
     /// </summary>
-    public bool TryRead(long nowTicks, out AcTelemetry telemetry)
+    /// <returns>
+    /// <see cref="ShmRead.Fresh"/>: a consistent sample from a live page.
+    /// <see cref="ShmRead.Torn"/>: the page is live but every attempt was torn. The
+    /// caller may repeat its last fresh sample briefly, and should not for long.
+    /// <see cref="ShmRead.Unavailable"/>: the game is absent or the page is frozen.
+    /// Send zeros, not the last known values: a stale RPM rumbling away after the
+    /// game exits is worse than silence.
+    /// </returns>
+    public ShmRead Read(long nowTicks, out AcTelemetry telemetry)
     {
         telemetry = default;
 
@@ -92,7 +114,7 @@ public sealed class AcSharedMemoryReader : IDisposable
 
             if (_view is null)
             {
-                return false;
+                return ShmRead.Unavailable;
             }
         }
 
@@ -131,30 +153,26 @@ public sealed class AcSharedMemoryReader : IDisposable
 
         if (!consistent)
         {
-            // The page is being rewritten faster than we can read it. Skipping one
-            // 60 Hz frame is invisible; publishing a torn one is not.
-            return false;
+            // The page is being rewritten faster than we can read it. Publishing a
+            // torn sample is never right. Only a page already known to be live can
+            // call this torn rather than unavailable.
+            return State == ShmState.Attached ? ShmRead.Torn : ShmRead.Unavailable;
         }
 
-        if (packetId != _lastPacketId)
-        {
-            _lastPacketId = packetId;
-            _lastChangeTicks = nowTicks;
-            SetState(ShmState.Attached);
-        }
-        else if (_lastChangeTicks != 0
-                 && (nowTicks - _lastChangeTicks) / TicksPerMs > StaleAfterMs)
+        if (!_liveness.Observe(packetId, nowTicks))
         {
             // Frozen for longer than the window. The mapping is still closed here,
             // because a game that has exited leaves its section alive for as long
             // as anyone holds a handle to it, and closing is the only way to find
             // out that it is gone. The rate limit in Probe keeps that to once a
-            // second, and _lastPacketId now survives the round trip, so this no
+            // second, and the counter's memory survives the round trip, so this no
             // longer oscillates back to Attached on the way.
             SetState(ShmState.Stale);
             Close();
-            return false;
+            return ShmRead.Unavailable;
         }
+
+        SetState(ShmState.Attached);
 
         telemetry = new AcTelemetry(
             EngineRpm: (ushort)Math.Clamp(rpms, 0, 65535),
@@ -162,7 +180,7 @@ public sealed class AcSharedMemoryReader : IDisposable
             TcActive: tc > 0.5f,
             TireSlipRatio: Math.Clamp(slip / _slipFull, 0f, 1f));
 
-        return true;
+        return ShmRead.Fresh;
     }
 
     private void Probe(long nowTicks)
@@ -189,7 +207,7 @@ public sealed class AcSharedMemoryReader : IDisposable
                 return;
             }
 
-            // Deliberately does NOT reset _lastPacketId or _lastChangeTicks.
+            // Deliberately does NOT reset the counter's memory in _liveness.
             //
             // A paused game leaves its counter frozen. Forgetting the counter here
             // made the very next read see that frozen value as brand new, so the
@@ -200,7 +218,7 @@ public sealed class AcSharedMemoryReader : IDisposable
             // recognisably frozen however many times it is re-opened.
             //
             // The state is not set here either. Whether this page is live is
-            // decided by whether its counter moves, which only TryRead can see.
+            // decided by whether its counter moves, which only Read can see.
             _loggedMissing = false;
         }
         catch (FileNotFoundException)
@@ -213,6 +231,11 @@ public sealed class AcSharedMemoryReader : IDisposable
             }
 
             Close();
+
+            // Nothing publishes under this name any more, so None, not Stale. Close
+            // keeps Stale because it cannot tell a frozen page from a gone one; this
+            // branch can. Without it, a game paused and then quit read Stale forever.
+            SetState(ShmState.None);
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
         {
