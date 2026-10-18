@@ -14,9 +14,10 @@ its degraded state on purpose.
 
 ## Status
 
-Written, never compiled, never flashed. There is no ESP32 toolchain on the machine
-this was authored on, by the same decision that removed the Visual Studio C++
-tools from the project. None of the hardware tests below has been run.
+The source is complete. It is written, never compiled, never flashed. There is no
+ESP32 toolchain on the machine this was authored on, by the same decision that
+removed the Visual Studio C++ tools from the project. None of the hardware tests
+below has been run.
 
 What has been checked is the part that can be: the checksum and the watchdog are
 plain C++ with no chip headers, and both were re-derived in Python straight from
@@ -32,10 +33,25 @@ goes through a separate serial chip and cannot present a HID device.
 
 ## Building
 
-Either toolchain works. The Arduino CLI is the primary path.
+**First, set the Wi-Fi passphrase.** There is no default. Copy the example file to
+`src/ap_secret.h`, which is git-ignored, and set `OSTEER_AP_PASSWORD` to a passphrase
+of your own, 8 to 63 characters. The build stops with an error until you do.
 
 ```bash
-arduino-cli core install esp32:esp32
+cp bridge-esp32/src/ap_secret.example.h bridge-esp32/src/ap_secret.h
+```
+
+One way to make a good passphrase:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(18))"
+```
+
+Either toolchain works. The Arduino CLI is the primary path. Install the same core
+version PlatformIO is pinned to:
+
+```bash
+arduino-cli core install esp32:esp32@3.3.12
 ```
 
 ```bash
@@ -53,6 +69,11 @@ PlatformIO instead:
 ```bash
 pio run -e dev
 ```
+
+`platformio.ini` pins the platform to pioarduino release 55.03.312-1 (Arduino core
+3.3.12, ESP-IDF 5.5.5) rather than the moving `stable` tag, so a build does not
+change underneath you. `default_envs = dev`, so a bare `pio run` builds the
+development firmware; `pio run -e release` builds the release one.
 
 A successful build shows exactly one `-DARDUINO_USB_MODE=0` in the compile line.
 Two means the board definition and the override are fighting.
@@ -76,10 +97,16 @@ On Windows, remove any WinUSB or libusb filter you may have installed for
 `303A:1001` before testing. A filter driver claims the device and the HID
 interface never appears.
 
+**The USB product ids are placeholders.** The firmware presents Espressif's vendor
+id `0x303A` with product id `0x8100` (development) or `0x8101` (release). Espressif
+has not allocated those two to this project. They are fine on your own desk; before
+distributing a build, request a real pair at https://github.com/espressif/usb-pids
+and put them in `src/config.h`.
+
 ## Using it
 
 1. Plug the board into the PC.
-2. Join the Wi-Fi network **OpenSteer-AP**, password `opensteer`.
+2. Join the Wi-Fi network **OpenSteer-AP** with the passphrase you set in `src/ap_secret.h`.
 3. Point the phone at `192.168.4.1` port `9999`.
 4. Open `joy.cpl` on the PC. "OpenSteer Wheel" should be listed.
 
@@ -92,7 +119,7 @@ The LED says what the bridge thinks is happening.
 | Amber | Link has gone quiet, pedals decaying |
 | Red | Fail-safe, coasting |
 | Purple | Slewing back after a reconnection |
-| Pink | Start-up failed |
+| Pink | Start-up failed; stays pink until reset |
 
 ## The development console
 
@@ -104,13 +131,18 @@ read counters during the hardware tests below.
 | `stats` | Counters, jitter, free heap, link state |
 | `reset` | Clears the counters |
 | `info` | Network settings and the LED pin |
-| `led <gpio>` | Sets the LED pin and remembers it |
-| `pw <password>` | Changes the Wi-Fi password |
+| `led <38\|48>` | Sets the LED pin and remembers it; any other pin is refused |
+| `pw <password>` | Changes the Wi-Fi passphrase, 8 to 63 characters |
 | `ch <1\|6\|11>` | Changes the Wi-Fi channel |
 
 **If the LED never lights, try `led 38`.** DevKitC-1 revision 1.0 wires it to
 GPIO 48 and revision 1.1 to GPIO 38. The revision is not readable at runtime, so
 the firmware guesses 48 and lets you correct it.
+
+Stored values are checked again on every boot, not only when the console writes
+them. A stored passphrase outside 8 to 63 characters falls back to the one built in
+from `src/ap_secret.h`, a channel other than 1, 6 or 11 falls back to 6, and an LED
+pin other than 38 or 48 falls back to 48.
 
 ## How it is built
 
@@ -125,9 +157,9 @@ watching the free heap for ten minutes.
 arrive while the USB task is busy, the older one is worthless. Delivering it would
 put the wheel where the driver's hands were rather than where they are.
 
-**The USB task owns core 1 alone.** Core 0 carries the Wi-Fi and lwIP stacks.
-Sharing a core with them is what puts millisecond gaps into a stream that is
-supposed to arrive every eight.
+**The USB task runs on core 1 at near-top priority.** Core 0 carries the Wi-Fi and
+lwIP stacks. Sharing a core with them is what puts millisecond gaps into a stream
+that is supposed to arrive every eight.
 
 **Losing the link coasts; it does not brake.** After 100 ms of silence the pedals
 decay. After 250 ms steering centres and every pedal goes to zero, including the

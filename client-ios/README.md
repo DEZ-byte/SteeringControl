@@ -69,9 +69,17 @@ cd client-ios && swift test
 
 ## Running it
 
-1. Start the daemon on the PC. Note the address it prints.
-2. Allow UDP port 9999 inbound through the Windows firewall, on the private profile.
-3. Open the app, type the address, press **Drive**.
+1. Start the daemon on the PC. On any network you do not own, start it with
+   `--allow <phone-ip>` so only the phone can drive; the uplink is checksummed, not
+   authenticated. Find the PC's LAN address with `Get-NetIPAddress -AddressFamily IPv4`.
+2. Allow UDP port 9999 inbound through the Windows firewall, on the Private profile
+   only and from the local subnet only. Never add Public:
+
+   ```powershell
+   New-NetFirewallRule -DisplayName 'OpenSteer UDP 9999' -Direction Inbound -Protocol UDP -LocalPort 9999 -RemoteAddress LocalSubnet -Action Allow -Profile Private
+   ```
+
+3. Open the app, type the PC's address, press **Drive**.
 4. iOS asks for local network permission the first time. Refuse it and nothing will
    ever connect, with no error beyond a stuck "Waiting" state.
 5. Hold the phone like a wheel and press **CENTRE**. Straight ahead is wherever the
