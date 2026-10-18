@@ -1,0 +1,217 @@
+# Builds and tests every component on GitHub's runners.
+#
+# The daemon and the Python harness need Windows, the iPhone library and app need
+# a Mac, and the bridge firmware needs the ESP32 toolchain, which PlatformIO
+# fetches on Linux. None of this needs the hardware the code drives. Checks on
+# real devices still need a phone, a PC running a game, and an ESP32 board to
+# test by hand.
+#
+# Every action is pinned to a full commit SHA. XcodeGen and gitleaks are pinned
+# to a version and checked against a SHA-256, and PlatformIO is pinned to a
+# version. The token is read-only, and no job is given a secret. The bridge's
+# Wi-Fi passphrase is generated on the runner for each build and thrown away
+# with it.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  windows:
+    name: Daemon and harness (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 8.0.x
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      # Also checks ViGEmClient.dll against its pinned SHA-256.
+      - name: Build
+        run: dotnet build server-windows/OpenSteer.sln -c Release
+
+      - name: Unit tests (xunit)
+        run: dotnet test server-windows/OpenSteer.sln -c Release --no-build
+
+      # The probes run the daemon just built, headless, with no virtual
+      # controller. A skipped probe tests nothing, so a skip fails the job.
+      - name: Harness and end-to-end tests (unittest)
+        run: |
+          set -o pipefail
+          python -m unittest discover -s tools -p "test_*.py" -v 2>&1 | tee "$RUNNER_TEMP/unittest.log"
+          if grep -q "skipped" "$RUNNER_TEMP/unittest.log"; then
+            echo "::error::a test was skipped"
+            exit 1
+          fi
+
+      # The C# suite, the Swift suite and the bridge all read this one fixture.
+      - name: Fixture matches its generator
+        run: |
+          python tools/golden_vectors.py
+          git diff --exit-code -- tools/golden_vectors.json
+          cmp tools/golden_vectors.json client-ios/Tests/OpenSteerCoreTests/Fixtures/golden_vectors.json
+
+  ios-core:
+    name: iPhone core library (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Unit tests (swift test)
+        working-directory: client-ios
+        run: swift test
+
+  ios-app:
+    name: iPhone app (macOS, simulator)
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install XcodeGen 2.46.0
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" \
+            https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip
+          echo "4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806  $RUNNER_TEMP/xcodegen.zip" \
+            | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
+
+      - name: Generate the project
+        working-directory: client-ios/App
+        run: |
+          xcodegen --version
+          xcodegen generate
+
+      # Any iPhone on the newest iOS runtime the runner has. Names change with
+      # every Xcode release, so none is written in here.
+      - name: Pick a simulator
+        id: sim
+        run: |
+          udid=$(xcrun simctl list devices available --json | jq -r '
+            .devices | to_entries
+            | map(select(.key | test("SimRuntime\\.iOS-[0-9]+-[0-9]+$")))
+            | sort_by(.key | capture("iOS-(?<a>[0-9]+)-(?<b>[0-9]+)$") | [(.a | tonumber), (.b | tonumber)])
+            | map(.value[] | select(.name | startswith("iPhone")))
+            | last | .udid // empty')
+          if [ -z "$udid" ]; then
+            echo "::error::no iPhone simulator on this runner"
+            xcrun simctl list devices available
+            exit 1
+          fi
+          xcrun simctl list devices available | grep "$udid"
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+
+      # The simulator needs no signing identity, so none is configured.
+      - name: Build and test the app (xcodebuild)
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+        run: |
+          xcodebuild test \
+            -project client-ios/App/OpenSteer.xcodeproj \
+            -scheme OpenSteer \
+            -destination "id=$UDID" \
+            CODE_SIGNING_ALLOWED=NO
+
+  bridge:
+    name: ESP32 bridge firmware (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: bridge-esp32
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The checksum and the watchdog, on the host, against the golden numbers.
+      - name: Host tests (g++)
+        run: |
+          g++ --version
+          g++ -std=c++17 -Wall -Wextra -Werror -I src -o "$RUNNER_TEMP/test_pure" \
+            test/test_pure.cpp src/checksum.cpp src/watchdog.cpp
+          "$RUNNER_TEMP/test_pure"
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      # The platform and its toolchains are pinned by platformio.ini, so its
+      # hash is the cache key.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.platformio
+          key: platformio-${{ runner.os }}-${{ hashFiles('bridge-esp32/platformio.ini') }}
+
+      - name: Install PlatformIO 6.2.0
+        run: python -m pip install --disable-pip-version-check platformio==6.2.0
+
+      # A random passphrase in the git-ignored header, so the build can run. It is
+      # never printed, and nothing built here is uploaded.
+      - name: Throwaway access point passphrase
+        run: |
+          umask 077
+          python -c 'import secrets; print("#define OSTEER_AP_PASSWORD \"%s\"" % secrets.token_urlsafe(24))' > src/ap_secret.h
+
+      - name: Development firmware (pio run -e dev)
+        run: pio run -e dev
+
+      - name: Release firmware (pio run -e release)
+        run: pio run -e release
+
+      - name: Image sizes
+        run: ls -l .pio/build/*/firmware.bin
+
+  secrets:
+    name: Secret scan (full history)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install gitleaks 8.30.1
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/gitleaks.tar.gz" \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  $RUNNER_TEMP/gitleaks.tar.gz" \
+            | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+
+      - name: Scan every commit
+        run: '"$RUNNER_TEMP/gitleaks" git --config .gitleaks.toml --redact --no-banner --exit-code 1 .'
