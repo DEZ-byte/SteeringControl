@@ -310,9 +310,12 @@ def main(argv: list[str] | None = None) -> int:
         # it out. The daemon would coast to neutral on its own after 250 ms, but
         # a stuck throttle for a quarter of a second is a quarter of a second of
         # a car accelerating with nobody driving it.
-        neutral = p.pack_uplink(seq=(seq + 1) & 0xFFFF, steer=0, throttle=0, brake=0,
-                                clutch=0, buttons=0, ts_ns=time.perf_counter_ns())
-        for _ in range(5):
+        # Each copy takes the next sequence number. Five copies of one number would
+        # be one frame and four duplicates to the daemon.
+        for i in range(5):
+            neutral = p.pack_uplink(seq=(seq + 1 + i) & 0xFFFF, steer=0, throttle=0,
+                                    brake=0, clutch=0, buttons=0,
+                                    ts_ns=time.perf_counter_ns())
             try:
                 sock.sendto(neutral, dst)
             except OSError:

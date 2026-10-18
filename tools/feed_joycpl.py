@@ -4,9 +4,15 @@ Drives the Windows daemon without an iPhone, so the whole host can be verified
 before any Swift exists. Also injects malformed frames and Wi-Fi style bursts, to
 prove the daemon rejects and coalesces rather than merely surviving.
 
+Buttons are off unless asked for. With no game focused, the virtual pad's A/B
+buttons navigate the Windows desktop, so pulses are opt-in (--buttons-hz), and no
+button, pulsed or held with --hold btn=..., goes live before --arm-delay seconds. Every control is released on the way out,
+Ctrl+C included, rather than left for the daemon's 250 ms watchdog.
+
 Examples:
     python tools/feed_joycpl.py --duration 30
-    python tools/feed_joycpl.py --pause-at 5 --pause-ms 600 --hold thr=40000 steer=12000
+    python tools/feed_joycpl.py --duration 30 --buttons-hz 1     # blink RB/LB/B in joy.cpl
+    python tools/feed_joycpl.py --pause-at 5 --pause-ms 600 --hold steer=12000,thr=40000
     python tools/feed_joycpl.py --burst 12 --burst-every 1 --duration 20
     python tools/feed_joycpl.py --fault bad_magic:50,bad_csum:50 --amp 30000
     python tools/feed_joycpl.py --selftest
@@ -15,6 +21,7 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import math
 import os
@@ -110,10 +117,11 @@ def signals(t: float, args: argparse.Namespace, hold: dict[str, int]) -> tuple[i
     clutch = hold.get("clu", 0)
 
     if "btn" in hold:
-        buttons = hold["btn"]
+        # An explicit hold still waits for the arm delay, like pulses do.
+        buttons = hold["btn"] if t >= args.arm_delay else 0
     else:
         buttons = 0
-        if args.buttons_hz > 0:
+        if args.buttons_hz > 0 and t >= args.arm_delay:
             slot = t % (1.0 / args.buttons_hz)
             window = 0.100
             if slot < window:
@@ -168,6 +176,29 @@ def selftest() -> int:
     return 0
 
 
+@contextlib.contextmanager
+def neutral_on_exit(sock: socket.socket, destination: tuple[str, int], next_seq):
+    """Releases every control on the way out, Ctrl+C included.
+
+    Without this the last frame stays applied until the daemon's watchdog times it
+    out, so an interrupted run can leave a button held or the wheel turned for a
+    quarter of a second. drive_keys.py follows the same rule. next_seq is read at
+    exit time, so the neutral frames continue the sequence instead of being
+    rejected as duplicates.
+    """
+    try:
+        yield
+    finally:
+        for i in range(5):
+            frame = p.pack_uplink(seq=(next_seq() + i) & 0xFFFF, steer=0, throttle=0,
+                                  brake=0, clutch=0, buttons=0,
+                                  ts_ns=time.perf_counter_ns())
+            try:
+                sock.sendto(frame, destination)
+            except OSError:
+                break
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="OpenSteer mock phone")
     ap.add_argument("--host", default="127.0.0.1")
@@ -180,7 +211,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--steer-hz", type=float, default=0.25)
     ap.add_argument("--amp", type=int, default=32767)
     ap.add_argument("--ramp-s", type=float, default=2.0)
-    ap.add_argument("--buttons-hz", type=float, default=1.0)
+    ap.add_argument("--buttons-hz", type=float, default=0.0,
+                    help="button pulse rate; 0 (default) never presses a button")
+    ap.add_argument("--arm-delay", type=float, default=5.0,
+                    help="seconds before any button, pulsed or held, goes live (default 5)")
     ap.add_argument("--pause-at", type=float, default=None)
     ap.add_argument("--pause-ms", type=float, default=600.0)
     ap.add_argument("--hold", default=None, help="steer=..,thr=..,brk=..,clu=..,btn=..")
@@ -245,7 +279,7 @@ def main(argv: list[str] | None = None) -> int:
           "duration": args.duration, "faults": total_faults,
           "burst": args.burst or 0})
 
-    with ht.WinTimerPeriod(1):
+    with ht.WinTimerPeriod(1), neutral_on_exit(sock, destination, lambda: seq):
         t0 = time.perf_counter_ns()
         deadline = t0
         window_start_ns = t0
