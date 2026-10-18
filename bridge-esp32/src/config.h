@@ -11,10 +11,15 @@ namespace cfg {
 
 // ---------------------------------------------------------------- identity
 
-// 0x303A is Espressif's own vendor id, which they license for use with their
-// chips. The two product ids keep the development build (composite: HID plus a
-// serial console) and the release build (HID alone) as distinct devices, so
-// Windows does not reuse a cached driver binding from one for the other.
+// 0x303A is Espressif's vendor id. Espressif allocates product ids under it on
+// request (https://github.com/espressif/usb-pids). 0x8100 and 0x8101 are
+// PLACEHOLDERS that have NOT been allocated to this project: fine on your own
+// desk, but replace them with an allocated pair, and link the allocation here,
+// before distributing a build.
+//
+// The two product ids keep the development build (composite: HID plus a serial
+// console) and the release build (HID alone) as distinct devices, so Windows does
+// not reuse a cached driver binding from one for the other.
 constexpr uint16_t kUsbVendorId = 0x303A;
 constexpr uint16_t kUsbProductIdDev = 0x8100;
 constexpr uint16_t kUsbProductIdRelease = 0x8101;
@@ -27,13 +32,26 @@ constexpr const char* kManufacturer = "OpenSteer";
 
 constexpr const char* kApSsid = "OpenSteer-AP";
 
-// The factory password. Overridable from the serial console, which writes it to
-// non-volatile storage, so a driver who cares can change it without a rebuild.
-constexpr const char* kApPasswordDefault = "opensteer";
+// There is deliberately no password in this file. A default printed in a public
+// repository is one everyone in radio range already knows, and the bridge has a
+// single station slot for them to take. Each build supplies its own in
+// src/ap_secret.h, which is git-ignored (copy src/ap_secret.example.h), and
+// wifi_ap.cpp, the only consumer, refuses to compile without it. Kept out of this
+// header so the chip-free host test, which includes config.h, still builds.
+// The development console can still replace it in non-volatile storage.
 
 // Channel 6 is the middle of the three non-overlapping 2.4 GHz channels. 1 and 11
 // are the alternatives, and the console can select them.
 constexpr uint8_t kApChannelDefault = 6;
+
+// WPA2-PSK limits. Shorter is refused by the radio, which would leave the access
+// point down or, on some stacks, open.
+constexpr unsigned kApPasswordMin = 8;
+constexpr unsigned kApPasswordMax = 63;
+
+constexpr bool isValidApChannel(uint8_t channel) {
+    return channel == 1 || channel == 6 || channel == 11;
+}
 
 // One station. The bridge serves exactly one phone, and refusing a second is
 // simpler and safer than arbitrating between two sources of steering.
@@ -88,6 +106,13 @@ constexpr uint32_t kDegradedTickMs = 10;
 // GPIO 38. Which one you have is not readable at runtime, so the console can
 // override it and the value persists.
 constexpr uint8_t kLedGpioDefault = 48;
+
+// The only two LED pins this firmware will drive. Anything else may be a
+// strapping pin, a flash or PSRAM line, or GPIO 19/20, the USB D-/D+ pair the
+// joystick itself depends on.
+constexpr bool isValidLedGpio(uint8_t gpio) {
+    return gpio == 38 || gpio == 48;
+}
 
 // Non-volatile storage namespace for the handful of overridable settings.
 constexpr const char* kNvsNamespace = "osteer";

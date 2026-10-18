@@ -11,8 +11,30 @@
 #include "hid_task.h"
 #include "status_led.h"
 
+// The access point passphrase is per build, never a shared constant. It lives in
+// ap_secret.h beside this file, which .gitignore keeps out of the repository.
+#if __has_include("ap_secret.h")
+#include "ap_secret.h"
+#else
+#error "Copy src/ap_secret.example.h to src/ap_secret.h and set OSTEER_AP_PASSWORD (8 to 63 characters)"
+#endif
+
+static_assert(sizeof(OSTEER_AP_PASSWORD) - 1 >= osteer::cfg::kApPasswordMin &&
+                  sizeof(OSTEER_AP_PASSWORD) - 1 <= osteer::cfg::kApPasswordMax,
+              "OSTEER_AP_PASSWORD in src/ap_secret.h must be 8 to 63 characters (WPA2-PSK)");
+
 namespace osteer {
 namespace {
+
+constexpr const char* kApPasswordFromBuild = OSTEER_AP_PASSWORD;
+
+bool isValidApPassword(const char* password) {
+    if (password == nullptr) {
+        return false;
+    }
+    const size_t length = strlen(password);
+    return length >= cfg::kApPasswordMin && length <= cfg::kApPasswordMax;
+}
 
 char gPassword[64] = {0};
 uint8_t gChannel = cfg::kApChannelDefault;
@@ -50,12 +72,25 @@ void onWiFiEvent(WiFiEvent_t event) {
 bool startAccessPoint() {
     Preferences prefs;
     if (prefs.begin(cfg::kNvsNamespace, true)) {
-        String stored = prefs.getString("ap_pw", cfg::kApPasswordDefault);
+        String stored = prefs.getString("ap_pw", kApPasswordFromBuild);
         stored.toCharArray(gPassword, sizeof(gPassword));
         gChannel = prefs.getUChar("ap_ch", cfg::kApChannelDefault);
         prefs.end();
     } else {
-        strncpy(gPassword, cfg::kApPasswordDefault, sizeof(gPassword) - 1);
+        strncpy(gPassword, kApPasswordFromBuild, sizeof(gPassword) - 1);
+    }
+
+    // Re-check what flash returned. setApPassword and setApChannel validate on
+    // write, but flash written by anything else (an older build, a manual NVS
+    // write) has not been, and an empty passphrase can bring the access point up
+    // open. Fall back to the build's own values rather than trust it.
+    if (!isValidApPassword(gPassword)) {
+        strncpy(gPassword, kApPasswordFromBuild, sizeof(gPassword) - 1);
+    }
+    gPassword[sizeof(gPassword) - 1] = '\0';
+
+    if (!cfg::isValidApChannel(gChannel)) {
+        gChannel = cfg::kApChannelDefault;
     }
 
     WiFi.onEvent(onWiFiEvent);
@@ -99,7 +134,7 @@ const char* apPassword() {
 bool setApPassword(const char* password) {
     // WPA2 will not accept anything shorter. Rejecting it here is better than
     // letting the access point silently fall back to open.
-    if (password == nullptr || strlen(password) < 8 || strlen(password) > 63) {
+    if (!isValidApPassword(password)) {
         return false;
     }
 
@@ -122,7 +157,7 @@ uint8_t apChannel() {
 bool setApChannel(uint8_t channel) {
     // 1, 6 and 11 are the only three 2.4 GHz channels that do not overlap each
     // other. Anything else guarantees interference with a neighbour.
-    if (channel != 1 && channel != 6 && channel != 11) {
+    if (!cfg::isValidApChannel(channel)) {
         return false;
     }
 

@@ -171,14 +171,24 @@ static void serviceConsole() {
             osteer::resetUplinkStats();
             USBSerial.println("OK counters cleared");
         } else if (strncmp(line, "led ", 4) == 0) {
-            osteer::setLedGpio(static_cast<uint8_t>(atoi(line + 4)));
-            USBSerial.printf("OK led_gpio=%u\n", osteer::ledGpio());
+            // atoi turns junk into 0 and a uint8_t cast wraps 294 to 38, so the
+            // range check runs on the int before anything is narrowed.
+            const int gpio = atoi(line + 4);
+            if (gpio >= 0 && gpio <= 255 && osteer::setLedGpio(static_cast<uint8_t>(gpio))) {
+                USBSerial.printf("OK led_gpio=%u\n", osteer::ledGpio());
+            } else {
+                USBSerial.println("ERR led must be 38 or 48");
+            }
         } else if (strncmp(line, "pw ", 3) == 0) {
             USBSerial.println(osteer::setApPassword(line + 3)
                                   ? "OK reboot to apply"
                                   : "ERR password must be 8 to 63 characters");
         } else if (strncmp(line, "ch ", 3) == 0) {
-            USBSerial.println(osteer::setApChannel(static_cast<uint8_t>(atoi(line + 3)))
+            // Same rule as `led`: range-check the int before narrowing, or 262
+            // wraps to 6 and is accepted.
+            const int channel = atoi(line + 3);
+            USBSerial.println(channel >= 0 && channel <= 255 &&
+                                      osteer::setApChannel(static_cast<uint8_t>(channel))
                                   ? "OK reboot to apply"
                                   : "ERR channel must be 1, 6 or 11");
         } else if (strcmp(line, "info") == 0) {

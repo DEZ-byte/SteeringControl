@@ -25,9 +25,14 @@ void setLedForState(uint8_t state);
 /// connected to it.
 void setLedWaitingForStation();
 
+/// Pink, and it stays pink until reset: every later colour request is overridden,
+/// so loop() and the Wi-Fi events cannot paint a dead bridge as a waiting one.
 void setLedFault();
 
 uint8_t ledGpio();
-void setLedGpio(uint8_t gpio);
+
+/// Accepts only the two pins the DevKitC-1 revisions wire (38, 48). Returns false
+/// and changes nothing otherwise.
+bool setLedGpio(uint8_t gpio);
 
 }  // namespace osteer
