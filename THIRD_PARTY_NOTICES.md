@@ -1,14 +1,14 @@
 # Third-party notices
 
 SteeringControl (OpenSteer) is MIT-licensed; see [LICENSE](LICENSE). It includes one
-third-party binary and one third-party algorithm, listed here with their licences.
+third-party binary and one third-party algorithm, listed here with their licenses.
 
 ## ViGEmClient.dll
 
 The native user-mode client for the ViGEmBus driver, committed unmodified so the
 Windows daemon builds with no download.
 
-| | |
+| Field | Value |
 |---|---|
 | File | `third_party/vigem/ViGEmClient.dll` |
 | Upstream | ViGEmClient by Nefarius Software Solutions e.U., https://github.com/nefarius/ViGEmClient |
@@ -18,11 +18,11 @@ Windows daemon builds with no download.
 
 The server build checks this hash (MSBuild target `VerifyViGEmClientHash` in
 `server-windows/OpenSteer.Server/OpenSteer.Server.csproj`) and stops if the file
-differs. Change both together, and only after a deliberate upgrade.
+differs. Change both together, and only when upgrading the DLL.
 
 The ViGEmBus kernel driver itself is not included. It is installed separately.
 
-Licence, copied from the upstream repository:
+License, copied from the upstream repository:
 
 ```
 MIT License
@@ -56,7 +56,7 @@ Yann Collet. The four implementations in this repository (C#
 `client-ios/Sources/OpenSteerCore/XXHash32.swift`, C++
 `bridge-esp32/src/checksum.cpp`, Python `tools/osproto.py`) are written from the
 published algorithm and checked against its reference test vectors. Credit and the
-reference implementation's licence:
+reference implementation's license:
 
 ```
 xxHash Library

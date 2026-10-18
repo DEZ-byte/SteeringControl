@@ -3,25 +3,22 @@
 Per-game setup for OpenSteer. One page each for Assetto Corsa, BeamNG.drive and
 Forza Horizon 4/5.
 
-## The one rule that matters
+## Turn off the game's input shaping
 
-**Turn every assist, filter, deadzone and smoothing option in the game off.**
+Turn every assist, filter, deadzone and smoothing option in the game off, not just
+down.
 
-Not down. Off.
+OpenSteer shapes the steering once, on the phone. Degrees of rotation, deadband and
+response curve are applied in `SteerMapper` before the packet is built (see
+[ARCHITECTURE.md](../ARCHITECTURE.md)), so the Windows daemon has no shaper.
+Every filter left enabled in the game is a second shaper on top of the first.
 
-OpenSteer already shapes the steering, once, on the phone. Degrees of rotation,
-deadband and response curve are applied in `SteerMapper` before the packet is
-built, which is why the Windows daemon has no shaper at all and its `--dor` flag
-only prints. Every filter you leave enabled in the game is a second shaper
-stacked on top of the first.
-
-That stacking is not merely redundant. A game-side steering filter works by
-lagging its input, so it adds milliseconds to a chain the entire project exists to
-keep under three. A game-side deadzone subtracts from a range the phone has
-already trimmed, so full lock stops being reachable. And two response curves
-multiplied together give a centre so soft the car feels broken and ends so sharp
-it feels twitchy, which is the exact complaint people have about phone steering in
-the first place.
+That causes three problems. A game-side steering filter works by lagging its
+input, so it adds latency to a chain designed to stay under 3 ms. A game-side
+deadzone subtracts from a range the phone has already trimmed, so full lock stops
+being reachable. And two response curves multiplied together give a very soft
+center and very sharp ends, so the car feels unresponsive near straight-ahead and
+twitchy near full lock.
 
 Set the shaping in the OpenSteer app instead. It is under the settings button:
 phone rotation, deadband, response.
@@ -35,7 +32,7 @@ fifth of the car's lock, and the car will barely respond.
 
 In Mode A, which is the default and the only verified path, OpenSteer presents an
 Xbox 360 controller through ViGEmBus. Games see a normal XInput pad, so use each
-game's **controller** setup, never its wheel setup.
+game's controller setup, not its wheel setup.
 
 | Phone input | Arrives as |
 |---|---|
@@ -61,11 +58,11 @@ setup, each page says so.
 ## Status
 
 These are starting points written from the games' documented settings, not
-measured results. None has been driven with a real phone yet, because the iOS app
-needs a Mac to build and the force-feedback road test needs Assetto Corsa installed.
-Treat the numbers as a sane first setup and expect to adjust the phone rotation
-setting to taste.
+measured results. The presets have been tested with the keyboard and loopback
+tools, not with a phone: the iOS app builds and passes its tests in CI but has not
+yet run on a physical iPhone. Treat the numbers as a reasonable first setup and
+expect to adjust the phone rotation setting to taste.
 
 Where a page gives an exact configuration file key, it also gives the menu path
-for the same setting. Use the menu if the two ever disagree: game updates rename
-keys, and a menu you can see is worth more than a file you cannot verify.
+for the same setting. Use the menu if the two disagree: game updates rename keys,
+and the menu shows the value the game is actually using.

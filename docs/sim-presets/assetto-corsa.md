@@ -1,8 +1,8 @@
 # Assetto Corsa
 
 Assetto Corsa is the reference game for this project. It is the one whose
-telemetry the daemon reads, and the force feedback you get on the phone comes out
-of its shared memory.
+telemetry the daemon reads, and the force feedback sent to the phone comes from
+its shared memory.
 
 ## Quick version
 
@@ -23,9 +23,9 @@ Copy it to:
 %USERPROFILE%\Documents\Assetto Corsa\cfg\controllers\presets\OpenSteer_Xbox360.ini
 ```
 
-**`presets`, not `savedsets`.** Both folders exist and only the first one feeds the
-preset list on the Controls page. A file in `savedsets` is silently ignored, which
-looks exactly like the file being malformed.
+Use `presets`, not `savedsets`. Both folders exist, but only `presets` feeds the
+preset list on the Controls page. A file in `savedsets` is ignored without any
+message, which looks the same as a malformed file.
 
 The folder does not exist until the game has been run once. Launch Assetto Corsa,
 let it reach the main menu, quit, and the whole `cfg` tree appears.
@@ -39,42 +39,42 @@ stock, and each one carries its reason inline.
 
 **Check the four gamepad values on screen after loading it.** Content Manager
 rewrites the file when it saves, and the game has renamed keys across versions.
-The file is a starting point; the menu is the truth.
+If the file and the menu disagree, go by the menu.
 
-## Why every number is what it is
+## Why each value is set this way
 
 | Setting | Value | Why |
 |---|---|---|
 | Input method | Gamepad | Mode A is an Xbox 360 pad. The wheel path expects a device with a physical rotation range and force feedback motors, and picking it gives a steering axis that behaves nothing like the one you are sending. |
-| Steering gamma | **1.0** | Linear. Gamma is a response curve, and the phone has already applied one. Two curves multiplied together give a dead centre and twitchy ends. |
-| Steering filter | **0** | A filter is a low-pass on your input. It smooths by delaying, which is latency added to a chain built to stay under three milliseconds. |
+| Steering gamma | **1.0** | Linear. Gamma is a response curve, and the phone has already applied one. Two curves multiplied together give a dead center and twitchy ends. |
+| Steering filter | **0** | A filter is a low-pass on your input. It smooths by delaying, which adds latency to a chain designed to stay under three milliseconds. |
 | Steering deadzone | **0** | The phone already trims a deadband before the packet is built. Subtracting a second one means full lock is no longer reachable. |
-| Steering speed | **0** | This is speed-sensitive steering, which quietly changes your lock ratio with velocity. You cannot build muscle memory against a ratio that moves. |
+| Steering speed | **0** | This is speed-sensitive steering, which changes your lock ratio with velocity. A ratio that changes with speed is harder to learn. |
 | Speed sensitivity | **0** | Same reason. |
-| Rumble | **0** | The pad is virtual and has no motors. The haptics you feel come from the phone, driven by the daemon reading shared memory. |
+| Rumble | **0** | The pad is virtual and has no motors. The haptics come from the phone, driven by the daemon reading shared memory. |
 
 ## Force feedback to the phone
 
-**There is nothing to enable.** Assetto Corsa publishes its physics page
+There is nothing to enable. Assetto Corsa publishes its physics page
 unconditionally, under the name `Local\acpmf_physics`, and the daemon attaches to
-it on its own. The whole path has been verified against a mock of that page.
+it on its own. This path has been verified against a mock of that page,
+`tools/inject_ac_shm.py`, but not yet with a phone receiving the haptics.
 
-Two things are worth knowing when it looks like it is not working.
+If it seems not to work, check two things.
 
-**The page only updates during a session.** Sitting in a menu, the numbers are
-stale or zero. The daemon reports this honestly: its status line shows the shared
-memory as stale and it sends zeroes as a heartbeat rather than pretending.
+**The page only updates during a session.** In a menu, the numbers are stale or
+zero. The daemon's status line shows the shared memory as stale, and it sends
+zeroes as a heartbeat.
 
 **In-game force feedback strength does not affect it.** That slider drives a
 physical wheel's motors. The phone's haptics are computed from engine speed, ABS,
-traction control and tyre slip, read straight out of the physics page. Turning the
+traction control and tire slip, read straight out of the physics page. Turning the
 in-game slider to zero changes nothing on the phone.
 
 ## Driving it without a phone
 
 `tools/drive_keys.py` sends the same packets the phone sends, at the same rate, so
-the daemon cannot tell the difference. It is the fastest way to find out whether
-the PC half works before any of the phone half exists.
+the daemon handles them identically. Use it to check the PC side without a phone.
 
 ```bash
 python tools/drive_keys.py
@@ -84,10 +84,10 @@ A and D steer, W and S are the pedals, Space is the handbrake, E and Q shift, Es
 stops. It reads the keyboard globally, so it keeps working after you switch to the
 game.
 
-The buttons stay dead for the first five seconds on purpose. A virtual pad's
-buttons are wired to Windows menu navigation when no game has the focus, so a
-handbrake press on the desktop clicks whatever is under it. The countdown is there
-so you can switch to the game first.
+The buttons stay disabled for the first five seconds. When no game has the focus,
+a virtual pad's buttons drive Windows menu navigation, so a handbrake press on the
+desktop clicks whatever is under it. The delay gives you time to switch to the
+game.
 
 ## Assignments
 
@@ -106,14 +106,14 @@ layout is fixed, and it already matches what the daemon sends.
 Two stock actions sat on the bumpers the paddles now use, so the preset frees
 them.
 
-The clutch stays unassigned. The phone sends zero on that axis always, so binding
+The clutch stays unassigned. The phone always sends zero on that axis, so binding
 it would give a clutch pedal permanently at rest.
 
 ## The keyboard shortcuts the preset clears
 
-This one is easy to miss and very confusing when it bites. Assetto Corsa's
-keyboard shortcuts fire whatever the input method is set to, and the stock Xbox
-preset puts several of them on exactly the keys `tools/drive_keys.py` drives with.
+Assetto Corsa's keyboard shortcuts fire whatever the input method is set to, and
+the stock Xbox preset puts several of them on the keys `tools/drive_keys.py`
+drives with.
 
 | Key | Stock action | What you would see |
 |---|---|---|
@@ -123,24 +123,23 @@ preset puts several of them on exactly the keys `tools/drive_keys.py` drives wit
 | S | Slow motion | braking drops the game to slow motion |
 | Q | Glance left, hide damage | downshifting looks sideways |
 | E | Celebrate | upshifting waves |
-| R | Replay | re-centring starts a replay |
+| R | Replay | re-centering starts a replay |
 | Space | Pause replay | the handbrake pauses |
 
 The preset sets all of those to unbound. If you build your own preset instead, do
-the same or the test will be baffling.
+the same, or keyboard testing will trigger these actions.
 
 ## Choosing how far to turn the phone
 
 Set this in the OpenSteer app, not in the game.
 
 **This is not the car's steering lock.** It is how far you rotate the phone to
-command full lock, and the two numbers have nothing to do with each other. A real
-900 degree wheel turns two and a half times. Your hands manage about 90 degrees
-each way before your arms cross over.
+command full lock, and the two numbers are independent. A real 900 degree wheel
+turns two and a half times. Your hands manage about 90 degrees each way before
+your arms cross over.
 
-That is why the old advice to start at 900 was wrong, and why the car would barely
-turn. At 900, a 90 degree wrist turn asks for a fifth of the car's lock and there
-is no way to ask for more.
+Older advice said to start at 900, which makes the car barely turn: a 90 degree
+wrist turn asks for a fifth of the car's lock and there is no way to ask for more.
 
 | Phone rotation | You turn | Feels |
 |---|---|---|
@@ -163,14 +162,14 @@ Set it to 180 in the app.
 left a gamma above 1.0 in the game. Check the gamepad gamma is 1.0, then raise the
 rotation setting.
 
-**Steering feels vague around centre.** Two deadzones are stacked. Set the game's
+**Steering feels vague around center.** Two deadzones are stacked. Set the game's
 deadzone to 0 and use the app's deadband alone.
 
 **Steering lags your hands.** A filter is on somewhere. Set the game's steering
 filter and steering speed to 0.
 
-**The wheel drifts while you hold still.** Press CENTRE in the app. The gyroscope
-has no absolute reference about the screen normal, so it recentres wherever the
+**The wheel drifts while you hold still.** Press CENTER in the app. The gyroscope
+has no absolute reference about the screen normal, so it recenters wherever the
 phone is pointing. A phone held flat drifts fastest; held up like a wheel, gravity
 constrains it and drift is negligible.
 

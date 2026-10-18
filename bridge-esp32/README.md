@@ -1,28 +1,29 @@
 # OpenSteer ESP32-S3 bridge
 
-Optional. A four-dollar board that makes the phone work with no software on the
-PC at all.
+Optional. An ESP32-S3 board that lets the phone drive a game with no OpenSteer
+software on the PC.
 
 The board creates its own Wi-Fi network, listens for the same 32-byte packets the
 Windows daemon does, and presents itself over USB as a plain HID game controller.
-No driver, no installer, no service running in the background. Windows, Linux,
-macOS and a PlayStation all bind a generic HID joystick out of the box.
+It needs no driver, installer or background service. Windows, Linux, macOS and a
+PlayStation all bind a generic HID joystick out of the box.
 
-The trade is that there is no force feedback. The bridge has nothing to read game
-telemetry from, so it never sends a downlink. The phone notices and stays out of
-its degraded state on purpose.
+The cost is that there is no force feedback. The bridge has no game telemetry to
+read, so it never sends a downlink. The phone only enters its degraded state after
+it has seen at least one downlink, so a bridge session is not reported as a fault.
 
 ## Status
 
-The source is complete. It is written, never compiled, never flashed. There is no
-ESP32 toolchain on the machine this was authored on, by the same decision that
-removed the Visual Studio C++ tools from the project. None of the hardware tests
-below has been run.
+Both firmware variants (`pio run -e dev` and `pio run -e release`) build in CI with
+the pinned PlatformIO platform. The board has never been flashed, so none of the
+hardware tests below has run.
 
-What has been checked is the part that can be: the checksum and the watchdog are
-plain C++ with no chip headers, and both were re-derived in Python straight from
-the source and run against `tools/golden_vectors.json`, the same fixture that pins
-the C# daemon and the Swift client. See `tools/test_bridge_logic.py`.
+The checksum and the watchdog are plain C++ with no chip headers, so they are
+tested on the host: `test/test_pure.cpp` builds them with g++ and checks them
+against numbers from `tools/golden_vectors.json`, the fixture that also pins the
+C# daemon and the Swift client. Those tests pass in CI, and
+`tools/test_bridge_logic.py` runs a Python re-derivation of both against the same
+fixture.
 
 ## Hardware
 
@@ -47,8 +48,8 @@ One way to make a good passphrase:
 python -c "import secrets; print(secrets.token_urlsafe(18))"
 ```
 
-Either toolchain works. The Arduino CLI is the primary path. Install the same core
-version PlatformIO is pinned to:
+Either the Arduino CLI or PlatformIO can be used; the Arduino CLI is the primary
+path. Install the same core version PlatformIO is pinned to:
 
 ```bash
 arduino-cli core install esp32:esp32@3.3.12
@@ -60,9 +61,9 @@ arduino-cli compile -v --fqbn esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=defa
 
 **Never pass `build.extra_flags`.** In the ESP32 platform definition that key
 expands to the whole group of USB defines, and `--build-property` replaces a value
-rather than adding to it. Overriding it wipes `ARDUINO_USB_MODE` and the build
-then fails on the `#error` at the top of the sketch, which is there precisely to
-catch this. `compiler.cpp.extra_flags` is empty by default and is the right place.
+rather than adding to it. Overriding it wipes `ARDUINO_USB_MODE`, and the build
+then fails on the `#error` at the top of the sketch, which exists to catch this.
+`compiler.cpp.extra_flags` is empty by default and is the right place.
 
 PlatformIO instead:
 
@@ -76,7 +77,7 @@ change underneath you. `default_envs = dev`, so a bare `pio run` builds the
 development firmware; `pio run -e release` builds the release one.
 
 A successful build shows exactly one `-DARDUINO_USB_MODE=0` in the compile line.
-Two means the board definition and the override are fighting.
+Two means the board definition and the override are both setting it.
 
 ## Flashing
 
@@ -110,21 +111,21 @@ and put them in `src/config.h`.
 3. Point the phone at `192.168.4.1` port `9999`.
 4. Open `joy.cpl` on the PC. "OpenSteer Wheel" should be listed.
 
-The LED says what the bridge thinks is happening.
+The LED shows the bridge's link state.
 
-| Colour | Meaning |
+| Color | Meaning |
 |---|---|
 | Blue | Access point up, nothing connected |
 | Green | Streaming |
 | Amber | Link has gone quiet, pedals decaying |
 | Red | Fail-safe, coasting |
 | Purple | Slewing back after a reconnection |
-| Pink | Start-up failed; stays pink until reset |
+| Pink | Startup failed; stays pink until reset |
 
 ## The development console
 
-The development build adds a serial console on the same USB cable. It exists to
-read counters during the hardware tests below.
+The development build adds a serial console on the same USB cable, used to read
+counters during the hardware tests below.
 
 | Command | Does |
 |---|---|
@@ -135,7 +136,7 @@ read counters during the hardware tests below.
 | `pw <password>` | Changes the Wi-Fi passphrase, 8 to 63 characters |
 | `ch <1\|6\|11>` | Changes the Wi-Fi channel |
 
-**If the LED never lights, try `led 38`.** DevKitC-1 revision 1.0 wires it to
+If the LED never lights, try `led 38`. DevKitC-1 revision 1.0 wires it to
 GPIO 48 and revision 1.1 to GPIO 38. The revision is not readable at runtime, so
 the firmware guesses 48 and lets you correct it.
 
@@ -149,33 +150,32 @@ pin other than 38 or 48 falls back to 48.
 **Nothing on the packet path allocates.** The receiver is a callback registered
 straight onto an lwIP control block, so the packet is validated on the network
 task that already owns it. What reaches the USB task is a 32-byte struct in a
-mailbox allocated once at start-up. A BSD socket would have meant a second task, a
-copy, and a blocking read to wake. The heap soak test below proves the claim by
-watching the free heap for ten minutes.
+mailbox allocated once at startup. A BSD socket would have meant a second task, a
+copy, and a blocking read to wake. The heap soak test below is meant to confirm
+this.
 
 **The mailbox is one slot deep, and writing to it overwrites.** If two packets
-arrive while the USB task is busy, the older one is worthless. Delivering it would
-put the wheel where the driver's hands were rather than where they are.
+arrive while the USB task is busy, the older one is stale. Delivering it would put
+the wheel where the driver's hands were rather than where they are.
 
 **The USB task runs on core 1 at near-top priority.** Core 0 carries the Wi-Fi and
-lwIP stacks. Sharing a core with them is what puts millisecond gaps into a stream
-that is supposed to arrive every eight.
+lwIP stacks, and sharing a core with them would put millisecond gaps into a stream
+that should arrive every 8 ms.
 
-**Losing the link coasts; it does not brake.** After 100 ms of silence the pedals
-decay. After 250 ms steering centres and every pedal goes to zero, including the
-brake. Injecting a full brake there would destabilise the tyre model and can spin
-a car mid-corner. On reconnection steering eases back over 300 ms and the pedals
-over 100 ms, so throttle response returns almost at once and only the wheel is
-eased.
+**When the link is lost, the car coasts.** After 100 ms of silence the pedals
+decay. After 250 ms steering centers and every pedal goes to zero, including the
+brake. The brake is released rather than applied because a full brake at that
+point would destabilize the tire model and can spin a car mid-corner. On
+reconnection steering eases back over 300 ms and the pedals over 100 ms, so
+throttle response returns almost at once and only the wheel is eased.
 
-This is the same watchdog the Windows daemon runs, to the least significant bit.
-It is checked against the same reference curves, because a bridge that coasts on a
-different schedule would feel like a different wheel.
+This watchdog matches the Windows daemon's to the least significant bit and is
+tested against the same reference curves, so a lost link behaves the same on
+either path; the schedule is in [ARCHITECTURE.md](../docs/ARCHITECTURE.md).
 
-**The access point tells us when the phone leaves.** That is better evidence than
-silence and it arrives sooner, so a disconnection goes straight to the fail-safe
-instead of waiting out the 250 ms timeout with the last steering angle still
-applied.
+**The access point reports when the phone disconnects.** That signal arrives
+sooner than the timeout, so a disconnection goes straight to the fail-safe instead
+of waiting 250 ms with the last steering angle still applied.
 
 ## Hardware tests
 
