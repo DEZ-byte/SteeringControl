@@ -42,8 +42,9 @@ final class HapticsEngine: @unchecked Sendable {
         queue.async { [weak self] in self?.stopOnQueue() }
     }
 
-    /// The main entry point, called from `ioQueue` on every downlink
-    /// frame. It hops to the haptics queue and returns immediately.
+    /// The main entry point, called from `ioQueue` on every motion sample and
+    /// when the link mutes haptics. It hops to the haptics queue and returns
+    /// immediately.
     func apply(_ output: HapticOutput) {
         guard isSupported else { return }
         guard !output.transients.isEmpty || output.rumble != nil else { return }

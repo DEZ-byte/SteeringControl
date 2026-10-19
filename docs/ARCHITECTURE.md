@@ -263,7 +263,7 @@ recline.
 Sign: θ is a right-hand rotation about +Z. Turning the phone clockwise, as the driver
 sees it, is negative θ, so `norm = clamp(−θ / (DOR / 2), −1, 1)`.
 
-These cases are pinned in the golden vectors and tested in C#, Swift and Python:
+These cases are pinned in the golden vectors and tested in Swift and Python:
 
 | Vector | Reference, current | Expected |
 |---|---|---|

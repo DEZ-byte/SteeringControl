@@ -119,8 +119,8 @@ public struct HapticPolicy: Sendable {
                                           count: HapticPolicy.globalTransientsPerSecond)
     }
 
-    /// One decision pass. Call it on every downlink frame and on every UI tick
-    /// that changes the brake, using a monotonic nanosecond clock.
+    /// One decision pass, using a monotonic nanosecond clock. The app calls it on
+    /// every motion sample, with the latest telemetry frame.
     public mutating func step(now: UInt64,
                               telemetry: TelemetryFrame,
                               inputs: HapticInputs) -> HapticOutput {
