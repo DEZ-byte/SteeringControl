@@ -379,10 +379,15 @@ final class LinkController: @unchecked Sendable {
         case .streaming:
             // The machine itself gates this on having seen telemetry at least
             // once, so an ESP32 bridge that never sends any is not reported as a
-            // fault for the whole session.
+            // fault for the whole session. The message follows the machine: on
+            // the bridge this fires every tick and the state never moves, and
+            // the status line has to keep saying Streaming.
             if elapsedMs(now, lastDownlinkNs) > LinkStateMachine.degradeAfterMs {
-                status.message = "Telemetry lost, steering still live"
-                apply(machine.handle(.downlinkSilent))
+                let effects = machine.handle(.downlinkSilent)
+                if machine.state == .degraded {
+                    status.message = "Telemetry lost, steering still live"
+                }
+                apply(effects)
             }
             checkViability(now)
 

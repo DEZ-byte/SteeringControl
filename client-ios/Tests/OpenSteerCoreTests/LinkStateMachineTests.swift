@@ -69,9 +69,14 @@ final class LinkStateMachineTests: XCTestCase {
         XCTAssertEqual(machine.state, .streaming)
         XCTAssertFalse(machine.hasSeenDownlink)
 
-        XCTAssertEqual(machine.handle(.downlinkSilent), [],
-                       "a link that never had telemetry cannot have lost it")
-        XCTAssertEqual(machine.state, .streaming)
+        // On the bridge the supervisor reports silence on every 100 ms tick for
+        // the whole session. The status line keys off the state after each call,
+        // so the state must hold on every one of them, not only the first.
+        for tick in 0..<50 {
+            XCTAssertEqual(machine.handle(.downlinkSilent), [],
+                           "a link that never had telemetry cannot have lost it (tick \(tick))")
+            XCTAssertEqual(machine.state, .streaming, "tick \(tick)")
+        }
 
         machine.handle(.downlinkReceived)
         XCTAssertTrue(machine.hasSeenDownlink)

@@ -116,11 +116,10 @@ written against Assetto Corsa's `acpmf_physics`. In Mode A the daemon still send
 its 60 Hz downlink, filled with zeros, so the phone never marks its link as degraded
 and its status line keeps reading "Streaming to" and the PC's address. The ESP32
 bridge sends no downlink at all. The phone then keeps its link up and does not mute
-haptics, but after half a second its status line reads "Telemetry lost, steering
-still live" for the rest of the session; on the bridge that is expected. Either way
-there is no engine rumble and no ABS or traction control tick, but the shift click
-and the brake lockup thud, which come from your own inputs, still play. Steering,
-pedals and buttons work normally.
+haptics, and its status line keeps reading "Streaming to" and the bridge's address.
+Either way there is no engine rumble and no ABS or traction control tick, but the
+shift click and the brake lockup thud, which come from your own inputs, still play.
+Steering, pedals and buttons work normally.
 
 ## Troubleshooting: when it feels wrong
 

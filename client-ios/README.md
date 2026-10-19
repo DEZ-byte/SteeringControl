@@ -298,8 +298,8 @@ sends.
 **Losing telemetry costs haptics only.** Once telemetry has arrived, half a second
 without a downlink marks the link degraded: the rumble and the ABS, TC, shift and
 lockup effects stop and the status line says so, but steering keeps streaming. A
-session that never receives a downlink, such as the ESP32 bridge, stays streaming;
-only its status line changes, to "Telemetry lost, steering still live".
+session that never receives a downlink, such as the ESP32 bridge, stays streaming,
+and its status line keeps reading "Streaming to".
 
 ## Not done yet
 
