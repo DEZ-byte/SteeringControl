@@ -62,6 +62,11 @@ full history for secrets. Each run also uploads two unsigned builds as artifacts
 the self-contained daemon (`OpenSteer-Server-win-x64`) and the iPhone app
 (`OpenSteer-unsigned.ipa`), which a sideloading tool signs with the user's own Apple
 ID ([client-ios/README.md](../client-ios/README.md#installing-on-an-iphone-without-a-mac-sideloading-ipa-on-windows)).
+Run artifacts need a GitHub sign-in and expire after 90 days. The
+[latest release](https://github.com/DEZ-byte/SteeringControl/releases/latest) carries
+the same two files from a run on `main` that passed every job, as
+`OpenSteer-Server-win-x64.zip` and `OpenSteer-unsigned.ipa`. Release downloads need
+no account and do not expire.
 
 ### The golden vectors
 

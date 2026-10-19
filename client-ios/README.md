@@ -7,8 +7,9 @@ played as haptics.
 
 **Status:** the core library and the app build and pass their tests in CI on a macOS
 runner (`swift test`, and `xcodebuild test` on an iOS simulator). CI also builds the
-app for a real iPhone and uploads it as `OpenSteer-unsigned.ipa`, which you can
-sideload from Windows without a Mac (see
+app for a real iPhone as `OpenSteer-unsigned.ipa`. The
+[latest release](https://github.com/DEZ-byte/SteeringControl/releases/latest) has it
+as a download, and you can sideload it from Windows without a Mac (see
 [Installing on an iPhone Without a Mac](#installing-on-an-iphone-without-a-mac-sideloading-ipa-on-windows)).
 The app has not yet been run on a physical iPhone.
 
@@ -128,16 +129,19 @@ are welcome in [GitHub Issues](https://github.com/DEZ-byte/SteeringControl/issue
 
 ### 1. Download the `.ipa`
 
-1. Open the [latest successful CI run on `main`](https://github.com/DEZ-byte/SteeringControl/actions/workflows/ci.yml?query=branch%3Amain+event%3Apush+is%3Asuccess).
-   Sign in to GitHub: artifact downloads need an account, even on a public
-   repository.
-2. Open the newest run. At the bottom of its summary page, under **Artifacts**,
-   download **`OpenSteer-unsigned.ipa`**. It downloads as the `.ipa` itself, not as a
-   zip.
+1. Open the [latest release](https://github.com/DEZ-byte/SteeringControl/releases/latest).
+   You do not need to sign in to GitHub.
+2. Under **Assets**, download **`OpenSteer-unsigned.ipa`**. It downloads as the
+   `.ipa` itself, not as a zip.
 
-Every CI run builds it: each push to `main`, each pull request, and each manual run.
-It is the `OpenSteer` app in the Release configuration, built for a real iPhone
-(`arm64`) with code signing turned off. GitHub deletes the artifacts after 90 days.
+The direct link is
+[`OpenSteer-unsigned.ipa`](https://github.com/DEZ-byte/SteeringControl/releases/latest/download/OpenSteer-unsigned.ipa).
+
+The file on the release comes from a CI run on `main` that passed every job. It is
+the `OpenSteer` app in the Release configuration, built for a real iPhone (`arm64`)
+with code signing turned off. Files on a release do not expire. CI also builds the
+same file on every run, but those run artifacts need a GitHub sign-in and GitHub
+deletes them after 90 days.
 
 ### 2. What a free Apple ID allows
 
@@ -214,8 +218,9 @@ EU, Japan and Brazil. It installs only notarized apps, so it cannot install this
    ```
 
    That is the path of your own `dotnet publish`. With the prebuilt
-   `OpenSteer-Server-win-x64` artifact from CI, run `.\OpenSteer.Server.exe` from the
-   unzipped folder instead.
+   `OpenSteer-Server-win-x64.zip` from the
+   [latest release](https://github.com/DEZ-byte/SteeringControl/releases/latest), run
+   `.\OpenSteer.Server.exe` from the unzipped folder instead.
 
 2. Allow UDP port 9999 inbound on the PC, on the Private profile only and from the
    local subnet only:

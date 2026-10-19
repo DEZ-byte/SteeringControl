@@ -88,18 +88,18 @@ Target end-to-end LAN latency is **under 3 ms**. That is a design budget, not ye
 
 ## Quickstart
 
-You need a Windows PC and an iPhone on the same Wi-Fi network. You do not need a Mac or a compiler: every CI run builds both halves and keeps them as downloads.
+You need a Windows PC and an iPhone on the same Wi-Fi network. You do not need a Mac or a compiler: CI builds both halves, and the [latest release](https://github.com/DEZ-byte/SteeringControl/releases/latest) has them as downloads.
 
 1. **Install the driver.** Install [ViGEmBus v1.22.0](https://github.com/nefarius/ViGEmBus/releases) on the PC. It provides the virtual Xbox 360 controller.
-2. **Get the daemon.** Open the [latest successful CI run on `main`](https://github.com/DEZ-byte/SteeringControl/actions/workflows/ci.yml?query=branch%3Amain+event%3Apush+is%3Asuccess), sign in to GitHub, and download **`OpenSteer-Server-win-x64`** from the run's **Artifacts**. Unzip it and keep `ViGEmClient.dll` in the same folder as `OpenSteer.Server.exe`. The executable is self-contained, so you do not need to install .NET.
+2. **Get the daemon.** From the [latest release](https://github.com/DEZ-byte/SteeringControl/releases/latest), download **[`OpenSteer-Server-win-x64.zip`](https://github.com/DEZ-byte/SteeringControl/releases/latest/download/OpenSteer-Server-win-x64.zip)**. Unzip it and keep `ViGEmClient.dll` in the same folder as `OpenSteer.Server.exe`. The executable is self-contained, so you do not need to install .NET.
 3. **Start the daemon.** Allow UDP port 9999 through the firewall on your private network (the command is under [Security Model](#security-model)). Then start the daemon with your phone's address, which is under **Settings > Wi-Fi** on the iPhone, behind the info button next to your network:
    ```powershell
    .\OpenSteer.Server.exe --allow <phone-ip>
    ```
-4. **Install the app.** Download **`OpenSteer-unsigned.ipa`** from the same run and sideload it from Windows with your own Apple ID: **[Installing on an iPhone Without a Mac](client-ios/README.md#installing-on-an-iphone-without-a-mac-sideloading-ipa-on-windows)**.
+4. **Install the app.** Download **[`OpenSteer-unsigned.ipa`](https://github.com/DEZ-byte/SteeringControl/releases/latest/download/OpenSteer-unsigned.ipa)** from the same release and sideload it from Windows with your own Apple ID: **[Installing on an iPhone Without a Mac](client-ios/README.md#installing-on-an-iphone-without-a-mac-sideloading-ipa-on-windows)**.
 5. **Drive.** Open the app, type the PC's address, tap **Drive** and allow local network access. Hold the phone like a wheel, press **CENTER**, and set up your game: [Assetto Corsa](docs/sim-presets/assetto-corsa.md), [BeamNG.drive](docs/sim-presets/beamng-drive.md) or [Forza Horizon 4 and 5](docs/sim-presets/forza-horizon.md).
 
-Neither download is code-signed. Windows SmartScreen can warn before the daemon's first start, and the `.ipa` installs only after the sideloading tool signs it. CI builds and checks the `.ipa`, but I have not yet installed it on a physical iPhone. GitHub deletes the artifacts after 90 days.
+Neither download is code-signed. Windows SmartScreen can warn before the daemon's first start, and the `.ipa` installs only after the sideloading tool signs it. CI builds and checks the `.ipa`, but I have not yet installed it on a physical iPhone. Release downloads need no GitHub account and do not expire.
 
 ---
 
@@ -111,9 +111,9 @@ Every component builds and passes its automated test suite in CI across Windows,
 |---|---|
 | **`OpenSteer.Core`** — wire codecs, XXH32, validator, watchdog, axis math, lease & `--allow` logic | Working (`79` xUnit tests passing) |
 | **`tools/`** — Python reference codecs, twist math, golden vector generator, mock phone, probes | Working (`41` unittest tests passing) |
-| **`OpenSteer.Server`** — UDP hot loop, Win32 high-res timers, ViGEm output | Verified on Windows with Assetto Corsa and loopback harness; CI publishes it as the `OpenSteer-Server-win-x64` artifact |
+| **`OpenSteer.Server`** — UDP hot loop, Win32 high-res timers, ViGEm output | Verified on Windows with Assetto Corsa and loopback harness; CI publishes it, and the [latest release](https://github.com/DEZ-byte/SteeringControl/releases/latest) has it as `OpenSteer-Server-win-x64.zip` |
 | **Telemetry & 60 Hz FFB Downlink** — lock-free shared-memory reader (`AcSharedMemoryReader`) | Verified against a mock physics page; Assetto Corsa's live physics page confirmed with `tools/ac_shm_peek.py`; not yet received by a phone |
-| **`client-ios`** — SwiftUI app & `OpenSteerCore` Swift package | Builds and passes XCTest suite in CI (macOS / iOS Simulator); CI also builds the unsigned arm64 `OpenSteer-unsigned.ipa` artifact; not yet run on a physical iPhone |
+| **`client-ios`** — SwiftUI app & `OpenSteerCore` Swift package | Builds and passes XCTest suite in CI (macOS / iOS Simulator); CI also builds the unsigned arm64 `OpenSteer-unsigned.ipa`, which the [latest release](https://github.com/DEZ-byte/SteeringControl/releases/latest) has as a download; not yet run on a physical iPhone |
 | **`bridge-esp32`** — optional ESP32-S3 Wi-Fi SoftAP to USB-HID bridge | Builds in CI (`dev` & `release` environments) and passes C++ host tests; not yet flashed to a board |
 | **`third_party/vigem/ViGEmClient.dll`** — native x64 ViGEm client | Committed and SHA-256 verified at build time (`VerifyViGEmClientHash`) |
 
