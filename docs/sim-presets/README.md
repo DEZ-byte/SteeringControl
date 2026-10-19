@@ -1,7 +1,16 @@
-# Sim presets
+# iPhone Steering Wheel Setup Guides for PC Racing Games (OpenSteer)
 
-Per-game setup for OpenSteer. One page each for Assetto Corsa, BeamNG.drive and
-Forza Horizon 4/5.
+Per-game setup for OpenSteer, the app that turns an iPhone into a PC steering
+wheel. One page each for Assetto Corsa, BeamNG.drive and Forza Horizon 4 and 5.
+
+| Game | Guide |
+|---|---|
+| Assetto Corsa | [Assetto Corsa iPhone Steering Wheel Setup & Preset](assetto-corsa.md) |
+| BeamNG.drive | [BeamNG.drive iPhone Steering Wheel Setup Guide](beamng-drive.md) |
+| Forza Horizon 4 and 5 | [Forza Horizon 4 & 5 iPhone Steering Wheel Setup on Windows](forza-horizon.md) |
+
+Want a rim to hold and levers for the pedals? See the experimental
+[DIY cardboard wheel](../hardware/CARDBOARD_WHEEL.md).
 
 ## Turn off the game's input shaping
 
@@ -46,14 +55,6 @@ game's controller setup, not its wheel setup.
 The ESP32 bridge is different: it presents a plain HID joystick with four separate
 16-bit axes, so the games see a wheel-like device instead. Where that changes the
 setup, each page says so.
-
-## Pages
-
-| Game | Page |
-|---|---|
-| Assetto Corsa | [assetto-corsa.md](assetto-corsa.md) |
-| BeamNG.drive | [beamng-drive.md](beamng-drive.md) |
-| Forza Horizon 4 and 5 | [forza-horizon.md](forza-horizon.md) |
 
 ## Status
 

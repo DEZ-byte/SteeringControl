@@ -1,10 +1,10 @@
-# BeamNG.drive
+# BeamNG.drive iPhone Steering Wheel Setup Guide (OpenSteer)
 
 BeamNG is the easiest of the three to set up but the most demanding to drive. Its
 soft-body tire and suspension model rewards smooth steering and punishes the
 sawing motion a badly configured phone encourages.
 
-## Quick version
+## Quick setup
 
 1. Start the OpenSteer daemon. Start BeamNG.
 2. **Options, Controls, Bindings**. The virtual pad appears as an Xbox 360
@@ -27,7 +27,7 @@ either case; see the filter section below.
 If both are plugged in at once, BeamNG will see two devices and may bind the wrong
 one. Unplug the bridge while using Mode A.
 
-## Bindings
+## BeamNG.drive bindings for the iPhone wheel
 
 **Options, Controls, Bindings, Vehicle.**
 
@@ -82,7 +82,7 @@ filter.
 motors, and on the bridge there is no return path at all. Haptics come from the
 phone.
 
-## Choosing how far to turn the phone
+## Steering rotation: how far to turn the phone
 
 Set this in the OpenSteer app, not in the game.
 
@@ -108,15 +108,21 @@ go down.
 BeamNG's soft-body model rewards smooth inputs, so if you are between
 two settings take the larger one.
 
-## Force feedback
+## Force feedback and haptics
 
-There is none in either mode. BeamNG does not publish the shared memory page
-that OpenSteer's telemetry reader attaches to; that reader is written against
-Assetto Corsa's `acpmf_physics`. The phone will show its link as degraded after
-half a second. This is expected and only the haptics are lost; steering, pedals
-and buttons all keep working normally.
+BeamNG sends no telemetry to the phone in either mode. It does not publish the
+shared memory page that OpenSteer's telemetry reader attaches to; that reader is
+written against Assetto Corsa's `acpmf_physics`. In Mode A the daemon still sends
+its 60 Hz downlink, filled with zeros, so the phone never marks its link as degraded
+and its status line keeps reading "Streaming to" and the PC's address. The ESP32
+bridge sends no downlink at all. The phone then keeps its link up and does not mute
+haptics, but after half a second its status line reads "Telemetry lost, steering
+still live" for the rest of the session; on the bridge that is expected. Either way
+there is no engine rumble and no ABS or traction control tick, but the shift click
+and the brake lockup thud, which come from your own inputs, still play. Steering,
+pedals and buttons work normally.
 
-## When it feels wrong
+## Troubleshooting: when it feels wrong
 
 **The car countersteers by itself.** The Gamepad filter is on. Switch the steering
 binding to Direct.

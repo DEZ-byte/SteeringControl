@@ -1,6 +1,6 @@
 # Architecture
 
-[⬅️ Back to README.md](../README.md)
+[⬅️ Back to Main README](../README.md)
 
 This document describes how SteeringControl (OpenSteer) works: the data path, the
 wire protocol, the steering math, the safety watchdog, the Windows daemon's threads,
@@ -34,8 +34,9 @@ CoreHaptics <-- haptic policy <-- 16 B downlink <--UDP 9999 (60 Hz)-----+
 An optional ESP32-S3 bridge replaces the daemon for the input path. The phone joins
 the bridge's own Wi-Fi access point and sends the same uplink to `192.168.4.1:9999`.
 The bridge presents itself to the PC as a USB HID joystick, so the PC needs no
-driver and no software. The bridge has no telemetry, so there is no downlink and no
-haptics on that path.
+driver and no software. The bridge has no telemetry, so there is no downlink on that
+path: no engine rumble and no ABS or TC ticks. The haptics driven by the driver's own
+inputs, the shift click, the brake lockup thud and the CENTER pulse, still play.
 
 | Part | Language | Role |
 |---|---|---|
@@ -52,12 +53,15 @@ haptics on that path.
 | Part | State |
 |---|---|
 | Windows daemon and telemetry | verified on real hardware and driven in Assetto Corsa (section 8) |
-| iOS core library and app | build and pass their tests in CI on macOS: `swift test`, and `xcodebuild test` on an iOS simulator. Not yet run on a phone |
+| iOS core library and app | build and pass their tests in CI on macOS: `swift test`, and `xcodebuild test` on an iOS simulator. CI also builds the app for a real iPhone (arm64, unsigned) and uploads it as `OpenSteer-unsigned.ipa`. Not yet run on a phone |
 | ESP32 bridge | both firmware variants build in CI; the checksum and watchdog pass host tests under g++. Not yet flashed |
 
 CI (`.github/workflows/ci.yml`) runs every suite on each push to `main` and on pull
 requests, checks that the committed fixture matches its generator, and scans the
-full history for secrets.
+full history for secrets. Each run also uploads two unsigned builds as artifacts:
+the self-contained daemon (`OpenSteer-Server-win-x64`) and the iPhone app
+(`OpenSteer-unsigned.ipa`), which a sideloading tool signs with the user's own Apple
+ID ([client-ios/README.md](../client-ios/README.md#installing-on-an-iphone-without-a-mac-sideloading-ipa-on-windows)).
 
 ### The golden vectors
 
@@ -289,7 +293,9 @@ pitch.
 Sign: θ is a right-hand rotation about +Z. Turning the phone clockwise, as the driver
 sees it, is negative θ, so `norm = clamp(−θ / (DOR / 2), −1, 1)`.
 
-These cases are pinned in the golden vectors and tested in Swift and Python:
+TV0 to TV6 and TV8 are pinned in the golden vectors. TV7 is generated inside the Swift
+test `testIdenticalAttitudesGiveExactlyZero`. Swift checks every row; Python checks
+TV0 to TV6:
 
 | Vector | Reference, current | Expected |
 |---|---|---|
@@ -397,6 +403,11 @@ The same state machine runs in `OpenSteer.Core/Watchdog.cs` and
 
 ```mermaid
 stateDiagram-v2
+    state "Live (normal)" as Live
+    state "Decaying (soft timeout)" as Decaying
+    state "FailSafe (coasting)" as FailSafe
+    state "Recovering (reconnect slew)" as Recovering
+
     [*] --> Idle
     Idle --> Live: first valid packet
     Live --> Decaying: no packet for over 100 ms
@@ -476,13 +487,14 @@ a send error, so that one count is approximate.
 ```mermaid
 sequenceDiagram
     participant Phone as iPhone
-    participant T1 as T1 rx-hot
+    participant T1 as T1 rx-hot<br/>UdpHotLoop
+    participant ViGEm as ViGEmBus<br/>virtual Xbox 360 pad
     participant Lease as LeaseSlot
     participant Ring as LogRing
     participant Counters as HotCounters
-    participant T2 as T2 telemetry-60hz
+    participant T2 as T2 telemetry-60hz<br/>DownlinkSender and<br/>AcSharedMemoryReader
     participant SHM as Local\acpmf_physics
-    participant T3 as T3 stats-1hz
+    participant T3 as T3 stats-1hz<br/>StatsPrinter
 
     Phone->>T1: 32 B uplink, UDP port 9999 by default
     Note over T1: Socket.Poll wakes, drain up to 64 frames,<br/>validate each, keep the newest
@@ -495,7 +507,10 @@ sequenceDiagram
     else the same phone
         T1->>Lease: Touch(now), Volatile.Write
     end
-    Note over T1: watchdog, then the ViGEm output
+    Note over T1: watchdog.Evaluate(now), every pass
+    opt the output changed
+        T1->>ViGEm: sink.Update(output) through ViGEmClient.dll
+    end
     opt a watchdog transition, or every nth output with --trace-inject n
         T1-)Ring: TryPush(event), drops and counts if full
     end
@@ -504,7 +519,7 @@ sequenceDiagram
     end
 
     loop every 16.667 ms while a phone holds the lease, every 250 ms otherwise
-        T2->>SHM: packetId, fields, packetId again (up to 8 tries)
+        T2->>SHM: seqlock-style read: packetId, fields, packetId again (up to 8 tries)
         opt the lease holder sent within 250 ms
             T2->>Lease: TryCopyTo(destination), short lock
             T2->>Phone: 16 B downlink from the same socket and port
@@ -605,6 +620,34 @@ changed. Without this, an RPM from one frame can be paired with a slip value fro
 next. If `packetId` stops changing for 2 seconds, the game is treated as gone: the
 mapping is released and re-probed once per second.
 
+#### Memory ordering of the seqlock-style read
+
+The reader takes no lock and adds no explicit barrier, and its loads still happen in
+program order. Every field is read with `MemoryMappedViewAccessor.ReadInt32` or
+`ReadSingle`, and `ReadSingle` calls `ReadInt32`. In .NET 8 each of those calls
+takes and releases a reference on the view's `SafeHandle` around the load:
+`SafeBuffer.AcquirePointer` calls `DangerousAddRef` before it, `ReleasePointer` calls
+`DangerousRelease` after it, and both update the handle's state with
+`Interlocked.CompareExchange`. The .NET memory model makes every `Interlocked`
+operation a full fence, so neither the JIT nor the CPU can move a load across one,
+and the JIT cannot merge the two `packetId` reads into one. x64 also never reorders
+a load with another load. Every offset read is a multiple of 4 from the start of the
+view, which is page-aligned, so each 4-byte read is aligned and atomic. (Sources:
+`UnmanagedMemoryAccessor.cs`, `SafeBuffer.cs`, `SafeHandle.cs` and
+`docs/design/specs/Memory-model.md` in dotnet/runtime, branch `release/8.0`.)
+
+Two limits apply:
+
+- The fences are a side effect of the accessor's handle reference counting, not a
+  documented guarantee of the API. Reading through a raw pointer instead would need
+  `Volatile.Read` to keep the order.
+- The fences order this reader's loads only. Assetto Corsa writes the page from its
+  own process, and its write order is not under this project's control. A true
+  seqlock writer marks the counter before and after each write. If the game writes
+  the fields first and moves `packetId` afterwards, a read that overlaps the write
+  can still mix two steps. The check rejects a sample whenever `packetId` moved
+  during the read, which is why it is called seqlock-style.
+
 The downlink carries RPM, ABS active (`abs > 0.5`), TC active (`tc > 0.5`), and the
 largest absolute wheel slip divided by `--slip-full` (default 1.0) and clamped to 0
 to 1. When the game is absent the daemon sends zeros rather than nothing, so the phone
@@ -682,6 +725,27 @@ shm`.
 
 Jitter (`ipdv`) is computed from deltas only, `(recv_i − recv_i−1) − (ts_i − ts_i−1)`,
 so the phone's clock is never compared with the PC's.
+
+### Latency histograms
+
+The hot loop keeps three `LatencyHistogram`s (`OpenSteer.Core/LatencyHistogram.cs`).
+Each is 1024 buckets of 50 µs, covering 0 to 51.2 ms, allocated at startup. A sample
+past the end lands in the top bucket, so a long stall still moves the p99 instead of
+being dropped. T1 records a sample with a plain increment.
+
+| Histogram | Recorded by T1 | `STATS` field |
+|---|---|---|
+| Inter-arrival | once per pass that accepted a packet: the time since the previous such pass | `ia_p50_us`, `ia_p99_us` |
+| Packet delay variation | the same passes, when the sender's timestamp moved forward: the absolute value of the jitter formula above | `ipdv_p99_us` |
+| Pipeline (receive to inject) | once per pass that changed the output: from the poll returning to `sink.Update` returning | `pipe_p99_us` |
+
+Once a second, T3 copies each histogram and subtracts its previous copy, which
+leaves the counts for the last second. It reports nearest-rank percentiles as the
+upper edge of the bucket, so every value is a multiple of 50 µs. That is why the
+inter-arrival median in section 8 reads 8350 µs for packets sent every 8333 µs. The
+copy takes no lock. A sample recorded while T3 copies is neither lost nor counted
+twice: it lands in this second if the copy has not yet read its bucket, and in the
+next second otherwise.
 
 ## 6. iOS client
 

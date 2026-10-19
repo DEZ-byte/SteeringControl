@@ -1,4 +1,4 @@
-# OpenSteer iOS client
+# OpenSteer iOS App: Use Your iPhone as a PC Steering Wheel
 
 The phone half of OpenSteer. It reads the gyroscope, turns the twist of the device
 into a steering axis, adds two thumb pedals and two paddles, and streams the result
@@ -6,8 +6,11 @@ to the Windows daemon at 120 Hz. Telemetry comes back on the same connection and
 played as haptics.
 
 **Status:** the core library and the app build and pass their tests in CI on a macOS
-runner (`swift test`, and `xcodebuild test` on an iOS simulator). The app has not yet
-been run on a physical iPhone.
+runner (`swift test`, and `xcodebuild test` on an iOS simulator). CI also builds the
+app for a real iPhone and uploads it as `OpenSteer-unsigned.ipa`, which you can
+sideload from Windows without a Mac (see
+[Installing on an iPhone Without a Mac](#installing-on-an-iphone-without-a-mac-sideloading-ipa-on-windows)).
+The app has not yet been run on a physical iPhone.
 
 The design is described in [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md): the twist
 math, the wire format, the queues, the link state machine and the haptics policy.
@@ -29,7 +32,10 @@ with a Swift toolchain, before Xcode is involved.
 
 ## Requirements
 
-- A Mac with Xcode 15 or newer, and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
+- To build from source: a Mac with Xcode 15 or newer, and
+  [XcodeGen](https://github.com/yonaskolb/XcodeGen).
+- To install without building: a Windows PC and the CI-built `.ipa` (see
+  [Installing on an iPhone Without a Mac](#installing-on-an-iphone-without-a-mac-sideloading-ipa-on-windows)).
 - An iPhone running iOS 17 or newer to drive. The simulator runs the tests but has
   no gyroscope and no Taptic Engine, so it will not steer or vibrate.
 
@@ -107,6 +113,96 @@ First run on the phone:
 A Personal Team's provisioning expires after seven days. The app then stops
 launching from the home screen; building to the phone again fixes it.
 
+## Installing on an iPhone Without a Mac (Sideloading `.ipa` on Windows)
+
+On Android, an app from outside the store comes as an `.apk` file. The iPhone's
+equivalent is an **`.ipa`**: a zip archive with the app bundle inside it, at
+`Payload/OpenSteer.app`. iOS installs an `.ipa` only after it is signed for your
+phone. A free Apple ID can sign apps for your own devices, and a Windows tool can do
+the signing and the install, so you need neither a Mac nor a paid Apple Developer
+account.
+
+**Status:** CI builds the `.ipa` and checks that it contains an arm64 iPhone
+executable. I have not yet sideloaded it onto a physical iPhone and run it. Reports
+are welcome in [GitHub Issues](https://github.com/DEZ-byte/SteeringControl/issues).
+
+### 1. Download the `.ipa`
+
+1. Open the [latest successful CI run on `main`](https://github.com/DEZ-byte/SteeringControl/actions/workflows/ci.yml?query=branch%3Amain+event%3Apush+is%3Asuccess).
+   Sign in to GitHub: artifact downloads need an account, even on a public
+   repository.
+2. Open the newest run. At the bottom of its summary page, under **Artifacts**,
+   download **`OpenSteer-unsigned.ipa`**. It downloads as the `.ipa` itself, not as a
+   zip.
+
+Every CI run builds it: each push to `main`, each pull request, and each manual run.
+It is the `OpenSteer` app in the Release configuration, built for a real iPhone
+(`arm64`) with code signing turned off. GitHub deletes the artifacts after 90 days.
+
+### 2. What a free Apple ID allows
+
+These limits are Apple's, not OpenSteer's:
+
+- A free Apple ID's signature lasts **7 days**. After that the app stops opening
+  until it is signed and installed again.
+- At most **3** sideloaded apps can be active on a phone at once. AltStore and
+  SideStore each count as one of the three.
+- At most **10** App IDs can be registered in 7 days.
+
+### 3. Option A: Sideloadly
+
+[Sideloadly](https://sideloadly.io/) is a free Windows app that signs an `.ipa` with
+your Apple ID and installs it.
+
+1. Install iTunes and iCloud from Apple's website, not from the Microsoft Store.
+   Sideloadly needs these web versions; uninstall the Store versions first. The links
+   are on [sideloadly.io](https://sideloadly.io/).
+2. Install Sideloadly from [sideloadly.io](https://sideloadly.io/).
+3. Connect the iPhone by USB, unlock it, and tap **Trust** when it asks.
+4. Drag `OpenSteer-unsigned.ipa` onto the Sideloadly window, enter your Apple ID,
+   and start the sideload.
+5. Do the iPhone steps in [section 5](#5-on-the-iphone).
+
+**Wi-Fi and automatic refresh.** After the first install over USB, Sideloadly can
+install and refresh over Wi-Fi while the PC and the phone are on the same network.
+On Windows, first turn on **Sync with this iPhone over Wi-Fi** in iTunes, on the
+phone's **Summary** page under **Options**. The Sideloadly Daemon, which runs in the
+background on the PC, then re-signs the app before the 7 days run out. Automatic
+refresh is on by default. It works only while the PC is on and the daemon is
+running, and the phone is connected by USB or is on the same Wi-Fi with its screen
+on.
+
+### 4. Option B: AltStore Classic or SideStore
+
+Both put a small store app on the phone, and you install the `.ipa` from inside it.
+
+- **AltStore Classic**
+  ([Windows guide](https://faq.altstore.io/altstore-classic/how-to-install-altstore-windows)).
+  Install AltServer for Windows (Windows 10 or later, with iTunes and iCloud from
+  Apple's website) and use it to put AltStore on the phone. Then tap **+** in
+  AltStore's **My Apps** and pick `OpenSteer-unsigned.ipa` in the Files app.
+  AltStore refreshes its apps over Wi-Fi while AltServer runs on a PC on the same
+  network. AltStore Classic 2.3 needs iOS 17.4 or later.
+- **SideStore** ([install guide](https://docs.sidestore.io/docs/installation/install)).
+  Install it once from Windows with iloader. After that it signs and refreshes apps
+  on the phone itself, through the LocalDevVPN app, without a PC. Install the `.ipa`
+  with **+** in **My Apps**. SideStore changes often, so follow its current guide
+  and release notes.
+
+AltStore PAL is a different product: an official alternative app marketplace in the
+EU, Japan and Brazil. It installs only notarized apps, so it cannot install this
+`.ipa`.
+
+### 5. On the iPhone
+
+1. Turn on **Settings > Privacy & Security > Developer Mode**, then restart the
+   phone. iOS 16 and later will not open an app signed with a free Apple ID without
+   it. The switch may appear only after the first sideloaded install.
+2. If iOS reports an untrusted developer, open **Settings > General > VPN & Device
+   Management**, select your Apple ID under **Developer App**, and tap **Trust**.
+3. Open OpenSteer and allow local network access when iOS asks. Then follow
+   [Running it](#running-it).
+
 ## Running it
 
 1. Start the daemon on the PC. On any network you do not own, start it with
@@ -116,6 +212,10 @@ launching from the home screen; building to the phone again fixes it.
    ```powershell
    .\server-windows\OpenSteer.Server\bin\Release\net8.0-windows\win-x64\publish\OpenSteer.Server.exe --allow <phone-ip>
    ```
+
+   That is the path of your own `dotnet publish`. With the prebuilt
+   `OpenSteer-Server-win-x64` artifact from CI, run `.\OpenSteer.Server.exe` from the
+   unzipped folder instead.
 
 2. Allow UDP port 9999 inbound on the PC, on the Private profile only and from the
    local subnet only:
@@ -173,8 +273,9 @@ diagnostics line shows which one you have.
 - **The app connects but the car does not move.** Check the PC side first: the
   daemon's `STATS` line shows whether packets arrive (`acc`) or are rejected
   (`other_src` usually means `--allow` names a different address).
-- **The app stopped launching from the home screen.** The Personal Team provisioning
-  expired. Build to the phone again.
+- **The app stopped launching from the home screen.** The free Apple ID's 7-day
+  signature expired. Build to the phone again, or re-sign it with your sideloading
+  tool.
 
 ## Design rules
 
@@ -194,9 +295,11 @@ at 15 Hz.
 applied here. The daemon has no shaper, so the game receives exactly what the phone
 sends.
 
-**Losing telemetry costs haptics only.** After half a second without a downlink the
-link is marked degraded: rumble mutes and the status line says so, but steering keeps
-streaming.
+**Losing telemetry costs haptics only.** Once telemetry has arrived, half a second
+without a downlink marks the link degraded: the rumble and the ABS, TC, shift and
+lockup effects stop and the status line says so, but steering keeps streaming. A
+session that never receives a downlink, such as the ESP32 bridge, stays streaming;
+only its status line changes, to "Telemetry lost, steering still live".
 
 ## Not done yet
 

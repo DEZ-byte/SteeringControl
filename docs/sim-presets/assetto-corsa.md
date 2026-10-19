@@ -1,10 +1,10 @@
-# Assetto Corsa
+# Assetto Corsa iPhone Steering Wheel Setup & Preset (OpenSteer)
 
 Assetto Corsa is the reference game for this project. It is the one whose
 telemetry the daemon reads, and the force feedback sent to the phone comes from
 its shared memory.
 
-## Quick version
+## Quick setup
 
 1. Start the OpenSteer daemon. Start Assetto Corsa.
 2. In Content Manager: **Settings, Controls, Input method: Gamepad**.
@@ -13,7 +13,7 @@ its shared memory.
 5. Turn the in-game vibration off. The phone does the haptics.
 6. Drive.
 
-## The preset file
+## The OpenSteer controller preset for Assetto Corsa
 
 [`assetto-corsa/OpenSteer_Xbox360.ini`](assetto-corsa/OpenSteer_Xbox360.ini)
 
@@ -53,7 +53,7 @@ If the file and the menu disagree, go by the menu.
 | Speed sensitivity | **0** | Same reason. |
 | Rumble | **0** | The pad is virtual and has no motors. The haptics come from the phone, driven by the daemon reading shared memory. |
 
-## Force feedback to the phone
+## iPhone haptics from Assetto Corsa telemetry
 
 There is nothing to enable. Assetto Corsa publishes its physics page
 unconditionally, under the name `Local\acpmf_physics`, and the daemon attaches to
@@ -71,7 +71,7 @@ physical wheel's motors. The phone's haptics are computed from engine speed, ABS
 traction control and tire slip, read straight out of the physics page. Turning the
 in-game slider to zero changes nothing on the phone.
 
-## Driving it without a phone
+## Testing Assetto Corsa without a phone
 
 `tools/drive_keys.py` sends the same packets the phone sends, at the same rate, so
 the daemon handles them identically. Use it to check the PC side without a phone.
@@ -89,7 +89,7 @@ a virtual pad's buttons drive Windows menu navigation, so a handbrake press on t
 desktop clicks whatever is under it. The delay gives you time to switch to the
 game.
 
-## Assignments
+## Steering, pedal and paddle assignments
 
 With input method **Gamepad**, Assetto Corsa does not let you pick axes. The Xbox
 layout is fixed, and it already matches what the daemon sends.
@@ -129,7 +129,7 @@ drives with.
 The preset sets all of those to unbound. If you build your own preset instead, do
 the same, or keyboard testing will trigger these actions.
 
-## Choosing how far to turn the phone
+## Steering rotation: how far to turn the phone
 
 Set this in the OpenSteer app, not in the game.
 
@@ -152,7 +152,7 @@ wrist turn asks for a fifth of the car's lock and there is no way to ask for mor
 Start at 180. If the car darts, go up. If you cannot reach full lock in a hairpin,
 go down.
 
-## When it feels wrong
+## Troubleshooting: when it feels wrong
 
 **The car barely turns, even at full wrist rotation.** The phone rotation setting
 is too large. It is not the car's steering lock; it is how far you turn the phone.

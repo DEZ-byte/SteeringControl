@@ -1,11 +1,11 @@
-# Forza Horizon 4 and 5
+# Forza Horizon 4 & 5 iPhone Steering Wheel Setup on Windows (OpenSteer)
 
 Both games behave the same way here, and the menus are in the same places.
 
 Forza is the quickest of the three to get driving but needs the most care to set
 up well, because its controller handling and its defaults assume a thumbstick.
 
-## Quick version
+## Quick setup
 
 1. Start the OpenSteer daemon. Start Forza.
 2. **Settings, Controls, Advanced Controls**.
@@ -14,7 +14,7 @@ up well, because its controller handling and its defaults assume a thumbstick.
 5. **Vibration Scale 0**.
 6. Drive.
 
-## Use Mode A
+## Use Mode A, the virtual Xbox 360 controller
 
 Forza Horizon binds XInput controllers and is unreliable with generic HID
 joysticks, so the ESP32 bridge is not a supported path here. Use the Windows
@@ -33,7 +33,7 @@ matches what OpenSteer sends.
 | Downshift | Left bumper |
 | Handbrake | B |
 
-## Advanced Controls
+## Advanced Controls: deadzones and linearity
 
 **Settings, Controls, Advanced Controls.** All of the setup is on this page.
 
@@ -72,7 +72,7 @@ expose this setting, so there is nothing to do there.
 setting does nothing either way, but leaving it on means Forza spends effort
 computing effects for a device that cannot play them.
 
-## Choosing how far to turn the phone
+## Steering rotation: how far to turn the phone
 
 Set this in the OpenSteer app, not in the game.
 
@@ -111,14 +111,17 @@ correct that.
 Traction control, stability control and the braking line are all fine to leave on.
 They act on the car, not on your input.
 
-## Force feedback
+## Force feedback and haptics
 
-There is none. Forza does not publish the shared memory page the OpenSteer
-telemetry reader attaches to; that reader is written against Assetto Corsa. The
-phone shows its link as degraded after half a second, which is expected. Steering,
-pedals and buttons are unaffected.
+Forza sends no telemetry to the phone. It does not publish the shared memory page
+the OpenSteer telemetry reader attaches to; that reader is written against Assetto
+Corsa. The daemon still sends its 60 Hz downlink, filled with zeros, so the phone
+never marks its link as degraded and its status line keeps reading "Streaming to"
+and the PC's address. There is no engine rumble and no ABS or traction control tick,
+but the shift click and the brake lockup thud, which come from your own inputs,
+still play. Steering, pedals and buttons are unaffected.
 
-## When it feels wrong
+## Troubleshooting: when it feels wrong
 
 **The car will not steer fully.** A deadzone outside is below 100. Set all of them
 to 100.
