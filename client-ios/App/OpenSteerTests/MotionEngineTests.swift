@@ -7,11 +7,16 @@ import OpenSteerCore
 /// driver cannot tell a bad connection from a busy main thread, so the engine
 /// refuses to start instead.
 final class MotionEngineTests: XCTestCase {
+    /// `OperationQueue.underlyingQueue` is `unowned(unsafe)` and does not keep
+    /// the dispatch queue alive. XCTest makes a new instance for each test, so
+    /// this property holds the queue for as long as the test runs.
+    private let ioQueue = DispatchQueue(label: "test.io", qos: .userInteractive)
+
     private func makeQueue() -> OperationQueue {
         let queue = OperationQueue()
         queue.maxConcurrentOperationCount = 1
         queue.qualityOfService = .userInteractive
-        queue.underlyingQueue = DispatchQueue(label: "test.io", qos: .userInteractive)
+        queue.underlyingQueue = ioQueue
         return queue
     }
 
