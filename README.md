@@ -3,8 +3,7 @@
 [![CI](https://github.com/DEZ-byte/SteeringControl/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/DEZ-byte/SteeringControl/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> 💡 **New here?** Read on below for the plain-English overview, visual diagrams, and quickstart.
->
+> 💡 **New here?** Read on for the overview, visual diagrams, and quickstart.
 > ⚙️ Skip to **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the byte-level wire protocol, quaternion twist-swing derivations, lock-free seqlock memory ordering, and latency histograms.
 
 Turn an iPhone into a free, low-latency 120 Hz steering wheel for PC sim racing. The PC sees a virtual Xbox 360 controller, and Assetto Corsa's telemetry comes back to the phone as haptic feedback. Setup guides cover Assetto Corsa, BeamNG.drive and Forza Horizon 4 and 5.
