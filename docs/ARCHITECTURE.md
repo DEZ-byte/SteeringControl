@@ -1,5 +1,7 @@
 # Architecture
 
+[⬅️ Back to README.md](../README.md)
+
 This document describes how SteeringControl (OpenSteer) works: the data path, the
 wire protocol, the steering math, the safety watchdog, the Windows daemon's threads,
 and the measurements behind the performance claims. The build and run instructions
@@ -91,7 +93,9 @@ Both packets are little-endian and packed, with no padding between fields. IPv4
 only. Python uses `struct` with `'<'` and Swift writes each field at an explicit
 byte offset (`storeBytes(of:toByteOffset:as:)`, `loadUnaligned`). C# uses a `Pack=1`
 struct whose size is asserted at startup, and C++ uses a packed struct with
-`static_assert` on size, offsets and byte order.
+`static_assert` on both packet sizes, on the offset of every uplink field from
+`sequence` to `checksum`, and (where the compiler defines `__BYTE_ORDER__`) on
+little-endian byte order.
 
 ### Uplink: phone to PC, 32 bytes
 
@@ -110,6 +114,19 @@ Python format `'<IHhHHHHIQI'`.
 | 20 | 8 | uint64 | TimestampNs | sender's monotonic clock in ns. Used only for jitter statistics |
 | 28 | 4 | uint32 | Checksum | XXH32 over bytes 0 to 27, seed `0x4F535401`, stored little-endian |
 
+```mermaid
+flowchart TB
+    subgraph first["Uplink bytes 0 to 15"]
+        direction LR
+        u0["0–3<br/>Magic<br/>u32"] --- u4["4–5<br/>Sequence<br/>u16"] --- u6["6–7<br/>Steer<br/>i16"] --- u8["8–9<br/>Throttle<br/>u16"] --- u10["10–11<br/>Brake<br/>u16"] --- u12["12–13<br/>Clutch<br/>u16"] --- u14["14–15<br/>Padding<br/>u16, must be 0"]
+    end
+    subgraph second["Uplink bytes 16 to 31"]
+        direction LR
+        u16b["16–19<br/>ButtonMask<br/>u32"] --- u20["20–27<br/>TimestampNs<br/>u64"] --- u28["28–31<br/>Checksum<br/>u32, XXH32 of bytes 0–27"]
+    end
+    first ~~~ second
+```
+
 `TimestampNs` at offset 20 is 4-byte aligned, not 8-byte aligned. A Swift struct with
 the same members is 36 bytes because Swift pads the `UInt64`, so the Swift client
 never asserts `MemoryLayout<UplinkState>.size == 32`. The golden hex vectors are the
@@ -125,17 +142,26 @@ Python format `'<IHBBfI'`.
 | Offset | Size | Type | Field | Rule |
 |---|---|---|---|---|
 | 0 | 4 | uint32 | Magic | `0x46464231`. On the wire: `31 42 46 46` |
-| 4 | 2 | uint16 | EngineRPM | Assetto Corsa `rpms`, clamped to 0 to 65535 |
+| 4 | 2 | uint16 | EngineRpm | Assetto Corsa `rpms`, clamped to 0 to 65535 |
 | 6 | 1 | uint8 | AbsActive | 0 or 1; the phone treats any nonzero value as 1 |
 | 7 | 1 | uint8 | TcActive | 0 or 1 |
 | 8 | 4 | float32 | TireSlipRatio | 0.0 to 1.0. The phone maps NaN and infinity to 0 and clamps |
 | 12 | 4 | uint32 | Reserved | 0. With `--echo-rtt` it carries the low 32 bits of the uplink timestamp, for round-trip measurement |
 
+```mermaid
+flowchart LR
+    subgraph down["Downlink, 16 bytes"]
+        direction LR
+        d0["0–3<br/>Magic<br/>u32"] --- d4["4–5<br/>EngineRpm<br/>u16"] --- d6["6<br/>AbsActive<br/>u8"] --- d7["7<br/>TcActive<br/>u8"] --- d8["8–11<br/>TireSlipRatio<br/>f32"] --- d12["12–15<br/>Reserved<br/>u32"]
+    end
+```
+
 Known answer: `31 42 46 46 52 1C 01 00 00 00 00 3E 00 00 00 00` is RPM 7250, ABS 1,
 TC 0, slip 0.125. The downlink has no sequence number; loss is tolerated. It is sent
 at 60 Hz while a phone holds the lease, and stops when the lease is released. With
 `--echo-rtt`, the 60 Hz sender stops and the hot thread instead sends one downlink
-for each accepted uplink, carrying that uplink's timestamp.
+per pass that accepted an uplink (the newest of a burst), carrying that uplink's
+timestamp.
 
 ### Checksum
 
@@ -234,12 +260,12 @@ captured when the driver presses **CENTER**. It is extracted from the relative
 attitude quaternion by twist-swing decomposition.
 
 The obvious method, `atan2(gravity.y, gravity.x)`, is right only while the phone
-turns in one plane. A pure turn at a fixed recline reads correctly, and changing the
-recline alone adds nothing. It goes wrong when the phone also swings sideways. With
-the phone reclined 85 degrees, a 10 degree turn made together with a 20 degree
-sideways swing reads as 7.706 degrees, and a 10 degree swing with no turn at all
-reads as 0.870 degrees of steering. Lying flat, the projection cannot see a turn: 30
-degrees reads as zero. The twist is unaffected by swing: a pure swing gives exactly
+turns in one plane. A pure turn at a fixed pitch reads correctly, and changing the
+pitch alone adds nothing. It goes wrong when the phone also swings sideways. With the
+phone pitched 85 degrees up from flat (5 degrees short of upright), a 10 degree turn
+made together with a 20 degree sideways swing reads as 7.706 degrees, and a 10
+degree swing with no turn at all reads as 0.870 degrees of steering. Lying flat, the
+projection cannot see a turn: 30 degrees reads as zero. The twist is unaffected by swing: a pure swing gives exactly
 zero, and the order of swing and twist does not change the result.
 
 CoreMotion's attitude quaternion maps the body frame to the reference frame, so a
@@ -257,8 +283,8 @@ if w < 0: w = −w; z = −z                          (canonicalize the double c
 
 The normalization of `(w, 0, 0, z)` cancels inside `atan2`. The argument order
 matters: `q_cur ⊗ conj(q_ref)` gives the world-frame Z component instead, which
-shrinks by about cos(tilt) and reads under a tenth of a real turn at an 85 degree
-recline.
+shrinks by about cos(pitch) and reads under a tenth of a real turn at an 85 degree
+pitch.
 
 Sign: θ is a right-hand rotation about +Z. Turning the phone clockwise, as the driver
 sees it, is negative θ, so `norm = clamp(−θ / (DOR / 2), −1, 1)`.
@@ -369,6 +395,37 @@ The same state machine runs in `OpenSteer.Core/Watchdog.cs` and
 | FailSafe | to Recovering from zero, reseed the sequence | nothing (written once) | steer 0, throttle 0, brake 0, clutch 0, buttons 0. Lease released, downlink stopped, `ALERT` logged |
 | Recovering | steering moves linearly from its start value to the packet over 300 ms; pedals over 100 ms; buttons follow at once. At 300 ms: to Live | `s > 100 ms`: to Decaying | slewed values |
 
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Live: first valid packet
+    Live --> Decaying: no packet for over 100 ms
+    Decaying --> Live: packet within ±4096 of the held steering
+    Decaying --> Recovering: packet further from the held steering
+    Decaying --> FailSafe: 250 ms without a packet, or bridge link down
+    Live --> FailSafe: 250 ms seen in one check, or bridge link down
+    Recovering --> FailSafe: 250 ms seen in one check, or bridge link down
+    FailSafe --> Recovering: packet, sequence reseeded
+    Recovering --> Live: 300 ms after recovery began
+    Recovering --> Decaying: no packet for over 100 ms
+
+    note right of Decaying
+        Steering and clutch held, buttons 0.
+        Throttle and brake decay with τ = 30 ms
+        and are forced to 0 below 257.
+    end note
+    note right of FailSafe
+        Steer, throttle, brake, clutch
+        and buttons all 0: the car coasts.
+        Daemon only: the hot loop then releases
+        the lease, which stops the downlink.
+    end note
+    note right of Recovering
+        Steering slews over 300 ms,
+        pedals over 100 ms, buttons at once.
+    end note
+```
+
 In fail-safe the car coasts. The brake is 0, not full. A full brake applied while the
 link is down can upset the game's tire model and spin the car mid-corner. Coasting
 with the wheel centered and the throttle closed is recoverable.
@@ -409,10 +466,70 @@ falls behind, T1 drops the event and counts it rather than block. T3 prints one
 `STATS` line per second (JSON with `--stats-json 1`, `key=value` otherwise) plus
 `WD`, `INJ` and `ALERT` events.
 
-The lease address is copied under a lock when it changes (T1) and once per tick by
+The lease address is copied under a lock when it changes (T1) and once per send by
 T2; the send happens outside the lock. The last-seen timestamp is shared through
-`Volatile`. Counters are plain `long` fields written by T1 and read with
-`Volatile.Read`.
+`Volatile`. Counters are plain `long` fields read with `Volatile.Read`. T1 writes the
+receive counters and T2 writes `DownlinkSent` (with `--echo-rtt`, T1 writes it
+instead). Both threads can increment `SocketErrors`, T1 on a receive error and T2 on
+a send error, so that one count is approximate.
+
+```mermaid
+sequenceDiagram
+    participant Phone as iPhone
+    participant T1 as T1 rx-hot
+    participant Lease as LeaseSlot
+    participant Ring as LogRing
+    participant Counters as HotCounters
+    participant T2 as T2 telemetry-60hz
+    participant SHM as Local\acpmf_physics
+    participant T3 as T3 stats-1hz
+
+    Phone->>T1: 32 B uplink, UDP port 9999 by default
+    Note over T1: Socket.Poll wakes, drain up to 64 frames,<br/>validate each, keep the newest
+    T1->>Lease: Matches(source) for each valid frame, no lock<br/>(after a claim in this pass, later frames are compared with the claimant)
+    T1->>Counters: plain field increments for each frame
+    Note over T1: after the drain, once per pass
+    alt a new phone claims the lease
+        T1->>Lease: Publish(address), short lock
+        T1-)T2: OnLeaseAcquired() wakes the idle wait
+    else the same phone
+        T1->>Lease: Touch(now), Volatile.Write
+    end
+    Note over T1: watchdog, then the ViGEm output
+    opt a watchdog transition, or every nth output with --trace-inject n
+        T1-)Ring: TryPush(event), drops and counts if full
+    end
+    opt the transition is to FailSafe
+        T1->>Lease: Release(), short lock
+    end
+
+    loop every 16.667 ms while a phone holds the lease, every 250 ms otherwise
+        T2->>SHM: packetId, fields, packetId again (up to 8 tries)
+        opt the lease holder sent within 250 ms
+            T2->>Lease: TryCopyTo(destination), short lock
+            T2->>Phone: 16 B downlink from the same socket and port
+            T2->>Counters: DownlinkSent++, or SocketErrors++ on a send error
+        end
+    end
+
+    loop every 1 s
+        T3->>Ring: TryPop events
+        T3->>Counters: Volatile.Read snapshot
+        T3->>T1: CopyTo of the inter-arrival, pipeline and jitter histograms, no lock
+        T3->>Lease: Describe(), short lock
+        Note over T3: format and print WD, INJ, ALERT and STATS lines
+    end
+```
+
+The only lock in this picture belongs to `LeaseSlot`. T1 takes it when a phone claims
+the lease (the first packet, the first packet after a fail-safe released it, or a
+`--takeover immediate` takeover) and when fail-safe releases it. For every other pass
+it compares the address and writes the timestamp without it. T2 takes it once per
+send to copy the address out, and T3 once per second to print it. `LogRing` is
+single-producer, single-consumer and never blocks T1. With `--echo-rtt`, T1 sends the
+downlink itself, one frame per pass that accepted an uplink (the newest of a burst),
+and takes the lock once per echoed frame to copy the address; T2 then only refreshes
+the telemetry it reads.
 
 ### Hot loop and burst drain
 
@@ -442,18 +559,20 @@ loop:
 Wi-Fi delivers packets in bunches. Replaying a bunch one frame at a time would make
 the wheel lag the hand by the length of the bunch. The drain keeps only the newest
 valid frame, so the output jumps to the current state. Every frame in a burst still
-updates the counters and the inter-arrival and jitter histograms. The thread always
-parks in the blocking outer poll, and the inner zero-timeout poll exits as soon as
-the queue is empty, so a quiet link costs one extra probe per pass and idle CPU stays
-at zero. `Socket.Available` is never polled in a loop.
+updates the accept and reject counters; the inter-arrival and jitter histograms are
+recorded once per pass, from the newest frame. The thread always parks in the
+blocking outer poll, and the inner zero-timeout poll exits as soon as the queue is
+empty, so a quiet link costs one extra probe per pass and idle CPU stays at zero.
+`Socket.Available` is never polled in a loop.
 
 `SocketAddress` comparisons use `.Equals`, never `==`, which is reference equality on
 that class and would reject every packet as `other_src`.
 
 ### One socket for both directions
 
-T1 only calls `ReceiveFrom` and T2 only calls `SendTo` on the same socket. One reader
-and one writer on a `Socket` is safe, and the socket is idle well over 99% of the
+T1 only calls `ReceiveFrom` and T2 only calls `SendTo` on the same socket (with
+`--echo-rtt`, T1 does the sending and T2 sends nothing). One reader and one writer
+on a `Socket` is safe, and the socket is idle well over 99% of the
 time at 120 Hz in and 60 Hz out. A separate send socket was considered and rejected:
 it would put the reply on a different port, need a listener on the phone, and need a
 second firewall rule. If a race ever appears, the fallback is for T2 to hand its

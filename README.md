@@ -3,6 +3,10 @@
 [![CI](https://github.com/DEZ-byte/SteeringControl/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/DEZ-byte/SteeringControl/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+> **New here?** Read on for the plain-English overview, with diagrams and analogies.
+>
+> **Systems engineer?** Skip to **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the wire format, threads, math and measurements.
+
 Turn an iPhone into a low-latency 120 Hz virtual steering wheel for PC sim racing, with haptic feedback driven by Assetto Corsa telemetry.
 
 ---
@@ -21,38 +25,26 @@ So I decided to build my own from scratch to fix all of that.
 
 ## How It Works
 
-OpenSteer splits the pipeline into a **120 Hz UDP control uplink** and a **60 Hz force-feedback telemetry downlink**, with an optional **ESP32-S3 hardware bridge** when you want a driverless plug-and-play USB HID joystick:
+OpenSteer splits the work into two streams. A **120 Hz control uplink** carries your steering and pedals from the phone to the PC. A **60 Hz haptic downlink** carries the car's engine speed, tire slip, ABS and traction control back to the phone, which you feel as vibration.
 
-```text
-  ┌─────────────────────────────────────────────────────────────────────────┐
-  │                        iPhone Client (client-ios)                       │
-  │  • CMMotionManager @ 120 Hz (.xArbitraryZVertical)                      │
-  │  • Quaternion twist-swing decomposition around screen normal (Z)        │
-  │  • Floating-anchor thumb pedals + tap shift paddles                     │
-  │  • CoreHaptics driven by the 60 Hz downlink (RPM, slip, ABS, TC)        │
-  └───────────────────┬─────────────────────────────────────▲───────────────┘
-                      │ 32-byte UDP Uplink (120 Hz)         │ 16-byte UDP Downlink (60 Hz)
-                      │ Magic 0x4F535452 + XXH32            │ Magic 0x46464231, no checksum
-                      ▼                                     │
-  ┌─────────────────────────────────────────────────────────┴───────────────┐
-  │                  Windows Host Daemon (OpenSteer.Server)                 │
-  │  • T1 Hot Loop: blocking socket poll + 64-packet non-blocking drain     │
-  │  • Zero heap allocations on hot path (Span<byte>, pre-sized buffers)    │
-  │  • Watchdog: 100 ms pedal decay -> 250 ms coasting fail-safe            │
-  │  • T2 Telemetry: lock-free seqlock reader on Assetto Corsa shared mem   │
-  └───────────────────┬─────────────────────────────────────▲───────────────┘
-                      │ P/Invoke (ViGEmClient.dll)          │ Local\acpmf_physics
-                      ▼                                     │
-  ┌─────────────────────────────────────────────────────────┴───────────────┐
-  │               Windows Kernel (ViGEmBus) & Sim Racing Title              │
-  │  • Appears as an Xbox 360 controller (driven in Assetto Corsa)          │
-  └─────────────────────────────────────────────────────────────────────────┘
-
-  Optional Driverless Path (bridge-esp32, no downlink or haptics):
-  [iPhone 120 Hz UDP] ──► [ESP32-S3 Wi-Fi SoftAP (192.168.4.1:9999)] ──► [PC USB-HID Joystick]
+```mermaid
+flowchart LR
+    subgraph downlink["60 Hz haptic downlink"]
+        direction LR
+        shm[("Assetto Corsa<br/>shared memory<br/>Local\acpmf_physics")] -- "seqlock-style read" --> daemonOut["Windows daemon<br/>OpenSteer.Server"]
+        daemonOut -- "16 B UDP packet" --> phoneOut["iPhone<br/>CoreHaptics<br/>RPM, slip, ABS, TC"]
+    end
+    subgraph uplink["120 Hz control uplink"]
+        direction LR
+        phoneIn["iPhone<br/>CoreMotion twist-swing,<br/>thumb pedals, paddles"] -- "32 B UDP packet" --> daemonIn["Windows daemon<br/>OpenSteer.Server<br/>validate, lease, watchdog"]
+        daemonIn -- "ViGEmClient.dll" --> vigem["ViGEmBus<br/>virtual Xbox 360 pad"]
+        vigem --> game["Game<br/>(driven in Assetto Corsa)"]
+    end
 ```
 
-Target end-to-end LAN latency is **under 3 ms**. That is a design budget, not yet measured with a phone; the measured loopback round trip on Windows is **173 µs** median and **517 µs** p99. Full architecture details, quaternion derivations, and benchmark tables are in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+> **Optional ESP32-S3 bridge:** the phone joins the bridge's own Wi-Fi network and sends the same 32-byte uplink to `192.168.4.1:9999`. The bridge shows up on the PC as a plain USB HID joystick, so the PC needs no driver and no software. The bridge has no telemetry, so that path has no downlink and no haptics.
+
+Target end-to-end LAN latency is **under 3 ms**. That is a design budget, not yet measured with a phone. With the daemon started with `--echo-rtt` and `--mode none` (no controller output), a Python mock phone on the same Windows PC measured an uplink-to-downlink loopback round trip of **173 µs** median and **517 µs** p99. Full architecture details, quaternion derivations, and benchmark tables are in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
 ---
 
@@ -74,50 +66,100 @@ Every component builds and passes its automated test suite in CI across Windows,
 
 ## Core Design Rules
 
-The codebase enforces four core rules. Rules 1 and 4 are pinned by regression tests in several languages; rules 2 and 3 were verified by measurement on the running daemon (idle CPU, burst coalescing, and its `gc0` counter):
+Four rules shape the code. Rules 1 and 4 are pinned by regression tests; rules 2 and 3 were checked by measuring the running daemon.
 
-1. **Steering is a quaternion twist, not a gravity projection.**
-   Steering angle is the pure rotation around the phone's screen normal (`Z` axis), extracted via quaternion twist-swing decomposition. A standard `atan2(gravity.y, gravity.x)` projection is only right while the phone turns in one plane: at an 85° recline, a 10° turn made together with a 20° sideways swing reads as 7.7°, a 10° swing with no turn at all reads as 0.87° of steering, and with the phone lying flat a 30° turn reads as 0°. Twist-swing decomposition is unaffected by the swing.
-2. **The receive loop blocks when idle and drains bursts when active.**
-   A blocking socket poll parks the receive thread in the kernel at 0% CPU while waiting for traffic. Once woken, a non-blocking inner loop drains up to 64 queued UDP datagrams and applies only the newest valid frame—so a Wi-Fi burst moves the wheel straight to your current hand position instead of replaying stale angles.
-3. **Zero heap allocations on the hot path.**
-   Socket buffers, endpoint structures, and log ring-buffer slots are pre-allocated once at startup. Incoming packets are validated and decoded directly from `Span<byte>`; Gen-0 garbage collections measured 0 in the mock-phone runs and across a 150-second, 18,001-frame soak with the real ViGEm driver.
-4. **Losing the link makes the car coast, not brake.**
-   After 100 ms without packets, throttle and brake decay exponentially. At 250 ms, the watchdog enters fail-safe: steering centers and all pedals drop to zero (including brake). Slamming full brake during a packet drop can unsettle the car and spin it mid-corner. When packets resume, steering eases back to live input over 300 ms and the pedals over 100 ms, buttons return immediately, and a short hiccup with the wheel near its held angle snaps straight back.
+### 1. Steering is a twist, not a gravity projection
+
+**In plain English:** the obvious way to build a phone wheel is to read the angle from which way gravity pulls across the screen, like a marble rolling on a plate. Tip the plate sideways and the marble moves, even though you never turned it. OpenSteer works like a screwdriver instead: it counts only how far you turn around the screen's own axis, so leaning the phone sideways does not steer.
+
+| Marble on a plate (gravity projection) | Screwdriver (twist-swing) |
+|---|---|
+| Reads `atan2(gravity.y, gravity.x)` | Reads the rotation about the screen normal |
+| A sideways swing changes the reading | A sideways swing adds nothing |
+| Lying flat, it cannot see a turn at all | Still reads the turn when the phone lies flat |
+
+<details>
+<summary>Technical details</summary>
+
+- Steering is the twist of the phone about its screen normal (device `+Z`), relative to the attitude captured on the first sample and again whenever you press **CENTER**: `q_rel = conj(q_ref) ⊗ q_cur`, then `θ = 2·atan2(z, w)`.
+- With the phone tilted 85° up from flat (5° short of upright, as you hold a wheel), a 10° turn made together with a 20° sideways swing reads **`10.000°`** as a twist and **`7.706°`** as a gravity projection (test vector TV3).
+- A 10° swing with no turn reads `0` as a twist and `0.870°` as a gravity projection (TV3b). Lying flat, a 30° turn reads `0°` as a gravity projection.
+- A swing about one axis in the screen plane adds exactly zero. Two swings in a row about different axes add a real rotation about the screen normal, and that part does steer.
+- `.xArbitraryZVertical` uses no magnetometer, so CoreMotion's yaw can drift. Upright, the twist axis is nearly horizontal and gravity corrects it. With the phone flat, the twist is the yaw, so the drift shows up as steering; pressing **CENTER** re-zeroes it.
+- The vectors are pinned in the golden fixture and tested in Swift and Python. Derivation: [docs/ARCHITECTURE.md § 3](docs/ARCHITECTURE.md#3-steering-and-pedal-math).
+
+</details>
+
+### 2. A Wi-Fi burst jumps to now; it does not replay
+
+**In plain English:** Wi-Fi often holds packets back and then delivers several at once. Playing them one by one is like a buffered replay: you watch where your hands were a moment ago. OpenSteer switches to live TV instead: it takes the newest packet and skips the old ones.
+
+| Buffered replay (one packet at a time) | Live TV (keep the newest) |
+|---|---|
+| A receiver that applies one queued packet per tick | Only the newest valid packet moves the wheel |
+| The wheel lags your hands by the whole burst | The wheel jumps to where your hands are now, in one controller update |
+
+<details>
+<summary>Technical details</summary>
+
+- The receive thread blocks in `Socket.Poll`. With no packets it wakes every 5 ms while a link is live, so the watchdog can run, and every 250 ms when idle, so an idle daemon uses effectively no CPU. When a packet arrives, it drains the queue with zero-timeout polls, at most **64 datagrams per pass**. It validates each one and keeps only the newest accepted frame. Earlier frames in the same pass that were also accepted are counted as `coalesced`.
+- Every frame still updates the accept and reject counters. The inter-arrival and jitter histograms are recorded once per pass, from the newest frame, so the `coalesced` counter is what shows the bunching.
+- Measured idle CPU: `0.0 ms` across 10 s. Burst test, 12 frames back to back once a second: coalescing on every burst, zero loss (24 frames coalesced across 5 bursts).
+- Details: [docs/ARCHITECTURE.md § 5](docs/ARCHITECTURE.md#5-windows-daemon).
+
+</details>
+
+### 3. Zero allocations on the hot path
+
+**In plain English:** a .NET program that keeps creating new objects must stop now and then to clean them up. That pause is called garbage collection, and in the middle of a corner it is a stutter. The receive loop creates everything it needs once at startup and reuses it, so a packet creates no garbage. Only the once-a-second work off the hot thread does (the stats line, and the telemetry thread's check for the game's shared memory), and in a 150-second soak the runtime never had to collect.
+
+| New memory for every packet | Allocate once, reuse forever |
+|---|---|
+| Garbage piles up at 120 packets a second | Nothing new is created per packet |
+| The runtime pauses the thread to collect it | No per-packet garbage; 0 collections measured |
+
+<details>
+<summary>Technical details</summary>
+
+- The receive buffer, the receive thread's two `SocketAddress` objects (plus one on the telemetry thread) and the log ring's 2048 slots are allocated once at startup. Packets are validated in place in a `Span<byte>`. Each accepted packet is decoded with one 32-byte copy onto the stack, and the newest in a pass overwrites the earlier ones.
+- The hot thread never formats a string. It pushes fixed-size events into a single-producer, single-consumer ring, and the 1 Hz stats thread formats them.
+- Measured with the daemon's `gc0` counter: **`0` Gen-0 collections** in the mock-phone runs and over a 150-second, **18,001-frame** soak with the real ViGEm driver (zero dropped, zero malformed, zero socket errors).
+
+</details>
+
+### 4. Losing the link lifts your foot; it never slams the brakes
+
+**In plain English:** if your inputs suddenly vanish mid-corner, the game can recover from a car that rolls off the throttle, but a sudden full brake can upset its tire model and spin the car. So when the phone goes quiet, OpenSteer lifts your foot instead of slamming the brakes: it eases off the pedals, then coasts with the wheel centered.
+
+| Slamming the brakes | Lifting your foot (OpenSteer) |
+|---|---|
+| Full brake the instant the link drops | Pedals fade out, then everything goes to zero, brake included |
+| The car can spin mid-corner | The car coasts with the wheel centered |
+| A short hiccup is a jolt | A short hiccup near the held angle snaps straight back |
+
+<details>
+<summary>Technical details</summary>
+
+| Time since the last packet | What the watchdog does |
+|---|---|
+| Up to 100 ms | **Live:** the last packet stays on the controller |
+| Over 100 ms | **Decaying:** steering and clutch held, buttons released; throttle and brake decay as `v0·exp(−(s − 100 ms)/30 ms)`, so **`τ = 30 ms`**, and are forced to 0 below 257 |
+| 250 ms | **FailSafe:** steer 0, throttle 0, brake 0, clutch 0, buttons 0; the lease is released and the downlink stops |
+| Packets return | **Recovering:** steering slews over **`300 ms`** and the pedals over **`100 ms`**; buttons follow at once. A hiccup that returns within ±4096 steer units of the held angle goes straight back to Live |
+
+- Measured: the soft timeout fired at 102.8 ms, fail-safe at 250.2 ms with the brake still at 0, and the recovery slew completed in 300.06 ms.
+- The same state machine runs in the C# daemon and the ESP32 bridge firmware. The bridge also drops straight to FailSafe when Wi-Fi reports the phone gone, and it has no lease or downlink to stop. The decay and slew curves are pinned to the golden vectors by the C# tests and the bridge's C++ host test, and a Python copy of the bridge's arithmetic is checked against the same values. State diagram: [docs/ARCHITECTURE.md § 4](docs/ARCHITECTURE.md#4-watchdog-and-fail-safe).
+
+</details>
 
 ---
 
 ## Wire Protocol at a Glance
 
-All multi-byte fields are little-endian. The uplink is validated by length, magic bytes, an **XXH32** checksum seeded with `0x4F535401`, and zeroed padding, in that order. The downlink carries no checksum: the phone checks only its length and magic, and sanitizes the slip value.
-
-### Uplink Frame: Phone → Host (`32 bytes`, 120 Hz)
-
-| Offset | Type | Field | Description |
-|---|---|---|---|
-| `0..3` | `uint32` | `magic` | `0x4F535452` (wire bytes `52 54 53 4F`) |
-| `4..5` | `uint16` | `seq` | Monotonic sequence number (`0..65535`, signed-16 wrap window) |
-| `6..7` | `int16` | `steer` | Steering angle (`-32767` full left .. `0` center .. `+32767` full right) |
-| `8..9` | `uint16` | `throttle` | Throttle pedal (`0..65535`) |
-| `10..11` | `uint16` | `brake` | Brake pedal (`0..65535`) |
-| `12..13` | `uint16` | `clutch` | Clutch pedal (`0..65535`; the app sends `0`) |
-| `14..15` | `uint16` | `pad` | Reserved (`0`, rejected if non-zero) |
-| `16..19` | `uint32` | `buttons` | Bitmask: `bit 0` UpShift (RB), `bit 1` DownShift (LB), `bit 2` Handbrake (B), `bit 3` spare (mapped to A; the app never sets it) |
-| `20..27` | `uint64` | `ts_ns` | Sender monotonic timestamp in nanoseconds |
-| `28..31` | `uint32` | `checksum` | `XXH32(bytes[0..27], seed = 0x4F535401)` |
-
-### Downlink Frame: Host → Phone (`16 bytes`, 60 Hz)
-
-| Offset | Type | Field | Description |
-|---|---|---|---|
-| `0..3` | `uint32` | `magic` | `0x46464231` (wire bytes `31 42 46 46`) |
-| `4..5` | `uint16` | `rpm` | Engine RPM from Assetto Corsa `rpms`, clamped to `0..65535` |
-| `6` | `uint8` | `abs` | ABS active (`0` or `1`; the phone treats any non-zero value as active) |
-| `7` | `uint8` | `tc` | Traction control active (`0` or `1`) |
-| `8..11` | `float32` | `slip` | Largest absolute wheel slip divided by `--slip-full`, clamped to `0.0..1.0` (the phone maps NaN/infinity to `0`) |
-| `12..15` | `uint32` | `reserved` | `0`; with `--echo-rtt`, the low 32 bits of the uplink's `ts_ns`, for round-trip measurement (in that mode the host replies once per accepted uplink instead of on the 60 Hz timer) |
-
-The downlink has no sequence number and no checksum: loss is tolerated. The full specification, including the checksum algorithm and its known-answer tests, is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#2-wire-protocol).
+* **Uplink, phone → PC:** 32 bytes at 120 Hz: magic `0x4F535452`, sequence, steering, three pedals, a 16-bit zero padding field, buttons, timestamp, and an XXH32 checksum seeded with `0x4F535401`.
+* **Downlink, PC → phone:** 16 bytes at 60 Hz: magic `0x46464231`, RPM, ABS, TC, tire slip, and a 32-bit reserved field. No checksum and no sequence number: a lost frame is simply replaced by the next one.
+* **Validation:** the PC checks length, magic, checksum and zeroed padding, in that order, then the sender's address (with `--allow`), the lease and the sequence number. The phone checks the downlink's length and magic and cleans up the slip value.
+* **Encoding:** every field is little-endian and packed. Byte offsets, packet diagrams and the checksum's known-answer tests are in **[docs/ARCHITECTURE.md § 2](docs/ARCHITECTURE.md#2-wire-protocol)**.
 
 ---
 
@@ -162,7 +204,8 @@ dotnet test server-windows/OpenSteer.Tests/OpenSteer.Tests.csproj
 
 # Run the 41 Python unittest tests (protocol, bridge logic, and live daemon probes).
 # The 3 daemon probes need Windows and a Release build: they are skipped if the daemon
-# has not been built, and fail if the build is older than its sources, so rebuild first.
+# has not been built (and the stale-telemetry probe while Assetto Corsa is running),
+# and fail if the build is older than its sources, so rebuild first.
 dotnet build server-windows/OpenSteer.sln -c Release
 python -m unittest discover -s tools -p "test_*.py"
 ```

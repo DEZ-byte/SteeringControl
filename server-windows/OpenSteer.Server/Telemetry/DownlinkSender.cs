@@ -145,9 +145,9 @@ public sealed class DownlinkSender : IDisposable
 
             Volatile.Write(ref _packedTelemetry, Pack(telemetry));
 
-            // In echo mode the hot thread does the sending, one frame per accepted
-            // uplink, so that the measured round trip excludes however long a frame
-            // would otherwise sit waiting for the next 60 Hz slot.
+            // In echo mode the hot thread does the sending, one frame per pass that
+            // accepted an uplink, so that the measured round trip excludes however
+            // long a frame would otherwise sit waiting for the next 60 Hz slot.
             if (_echoRtt || !IsLeaseLive(now))
             {
                 continue;

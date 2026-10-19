@@ -1,10 +1,13 @@
 namespace OpenSteer.Core;
 
 /// <summary>
-/// Plain 64-bit counters written by the hot thread and read by the 1 Hz stats
-/// thread. Not Interlocked: on x64 an aligned 64-bit load or store is atomic, the
-/// stats are approximate anyway, and keeping the hot path free of
-/// lock-prefixed instructions matters more than a perfectly consistent snapshot.
+/// Plain 64-bit counters read by the 1 Hz stats thread. The hot thread writes every
+/// one except DownlinkSent, which the telemetry thread writes (the hot thread does,
+/// with --echo-rtt). SocketErrors is bumped by whichever thread hit the error, so
+/// two writers can lose an increment there. Not Interlocked: on x64 an aligned
+/// 64-bit load or store is atomic, the stats are approximate anyway, and keeping the
+/// hot path free of lock-prefixed instructions matters more than a perfectly
+/// consistent snapshot.
 /// </summary>
 public sealed class HotCounters
 {
