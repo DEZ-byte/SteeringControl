@@ -6,6 +6,12 @@
 # real devices still need a phone, a PC running a game, and an ESP32 board to
 # test by hand.
 #
+# Two jobs keep what they build as artifacts of the run: the Windows job uploads
+# the self-contained daemon (OpenSteer-Server-win-x64), and the iPhone app job
+# uploads an arm64 build for a real iPhone (OpenSteer-unsigned.ipa). Neither is
+# code-signed. The .ipa installs only after a sideloading tool signs it with the
+# user's own Apple ID (client-ios/README.md).
+#
 # Every action is pinned to a full commit SHA. XcodeGen and gitleaks are pinned
 # to a version and checked against a SHA-256, and PlatformIO is pinned to a
 # version. The token is read-only, and no job is given a secret. The bridge's
@@ -74,6 +80,26 @@ jobs:
           git diff --exit-code -- tools/golden_vectors.json
           cmp tools/golden_vectors.json client-ios/Tests/OpenSteerCoreTests/Fixtures/golden_vectors.json
 
+      # The self-contained single-file executable, with ViGEmClient.dll beside it.
+      # The publish checks the DLL's SHA-256 again. The licenses go in the folder
+      # too: it redistributes ViGEmClient.dll and, inside the executable, the .NET
+      # runtime.
+      - name: Publish the daemon (win-x64)
+        run: |
+          dotnet publish server-windows/OpenSteer.Server -c Release -r win-x64
+          out=server-windows/OpenSteer.Server/bin/Release/net8.0-windows/win-x64/publish
+          cp LICENSE THIRD_PARTY_NOTICES.md "$out/"
+          ls -l "$out"
+          test -s "$out/OpenSteer.Server.exe"
+          test -s "$out/ViGEmClient.dll"
+
+      - name: Upload OpenSteer-Server-win-x64
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: OpenSteer-Server-win-x64
+          path: server-windows/OpenSteer.Server/bin/Release/net8.0-windows/win-x64/publish/
+          if-no-files-found: error
+
   ios-core:
     name: iPhone core library (macOS)
     runs-on: macos-latest
@@ -93,7 +119,7 @@ jobs:
         run: swift test
 
   ios-app:
-    name: iPhone app (macOS, simulator)
+    name: iPhone app (macOS, simulator and device build)
     runs-on: macos-latest
     timeout-minutes: 30
     steps:
@@ -145,6 +171,55 @@ jobs:
             -scheme OpenSteer \
             -destination "id=$UDID" \
             CODE_SIGNING_ALLOWED=NO
+
+      # The same app for a real iPhone (arm64), in the Release configuration, with
+      # code signing turned off. No signing identity or team exists on the runner.
+      - name: Build for a device, unsigned (xcodebuild)
+        run: |
+          xcodebuild build \
+            -project client-ios/App/OpenSteer.xcodeproj \
+            -scheme OpenSteer \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/device" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=NO
+
+      # An .ipa is a zip archive with the app bundle under Payload/.
+      - name: Package OpenSteer-unsigned.ipa
+        run: |
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$RUNNER_TEMP/device/Build/Products/Release-iphoneos/OpenSteer.app" \
+            "$RUNNER_TEMP/ipa/Payload/"
+          cd "$RUNNER_TEMP/ipa"
+          zip -qry OpenSteer-unsigned.ipa Payload
+
+      # Fails unless the archive is non-empty and its executable is an arm64
+      # Mach-O binary. lipo reads only Mach-O files.
+      - name: Check the .ipa
+        run: |
+          ipa="$RUNNER_TEMP/ipa/OpenSteer-unsigned.ipa"
+          test -s "$ipa"
+          ls -l "$ipa"
+          unzip -Z1 "$ipa" | grep -qx 'Payload/OpenSteer.app/OpenSteer'
+          unzip -q "$ipa" -d "$RUNNER_TEMP/ipa-check"
+          app="$RUNNER_TEMP/ipa-check/Payload/OpenSteer.app"
+          test "$(plutil -extract CFBundleExecutable raw -o - "$app/Info.plist")" = OpenSteer
+          file "$app/OpenSteer"
+          lipo -info "$app/OpenSteer"
+          test "$(lipo -archs "$app/OpenSteer")" = arm64
+
+      # Uploaded as the bare file, not zipped, so the download is the .ipa itself.
+      # With archive: false the artifact takes the file's name.
+      - name: Upload OpenSteer-unsigned.ipa
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          path: ${{ runner.temp }}/ipa/OpenSteer-unsigned.ipa
+          archive: false
+          if-no-files-found: error
 
   bridge:
     name: ESP32 bridge firmware (Linux)

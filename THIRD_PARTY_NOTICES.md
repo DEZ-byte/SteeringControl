@@ -1,7 +1,9 @@
 # Third-party notices
 
-SteeringControl (OpenSteer) is MIT-licensed; see [LICENSE](LICENSE). It includes one
-third-party binary and one third-party algorithm, listed here with their licenses.
+SteeringControl (OpenSteer) is MIT-licensed; see [LICENSE](LICENSE). The repository
+includes one third-party binary and one third-party algorithm, listed here with their
+licenses. The prebuilt daemon that CI publishes also bundles the .NET 8 runtime; see
+the last section.
 
 ## ViGEmClient.dll
 
@@ -85,4 +87,41 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
 ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
+## .NET 8 runtime (prebuilt daemon only)
+
+The `OpenSteer-Server-win-x64` artifact that CI uploads is a self-contained publish:
+`OpenSteer.Server.exe` contains the .NET 8 runtime and base libraries, so it runs
+without a separate .NET install. The repository itself contains no runtime files;
+they come from Microsoft's runtime pack at publish time. CI copies `LICENSE` and this
+file into the artifact. The .NET runtime's own third-party notices are at
+https://github.com/dotnet/runtime/blob/release/8.0/THIRD-PARTY-NOTICES.TXT.
+
+License, copied from https://github.com/dotnet/runtime/blob/release/8.0/LICENSE.TXT:
+
+```
+The MIT License (MIT)
+
+Copyright (c) .NET Foundation and Contributors
+
+All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ```
