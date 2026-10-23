@@ -96,7 +96,14 @@ public sealed class ViGEmX360Sink : IOutputSink
     /// </remarks>
     private void WarmUp()
     {
-        var neutral = default(XusbReport);
+        // The same report Update builds for a released controller. With
+        // --clutch-axis a released clutch is the bottom of the right stick, not its
+        // centre, and an all-zero first packet matches the watchdog's starting
+        // state, so no Update follows to correct it.
+        var neutral = new XusbReport
+        {
+            ThumbRY = _clutchOnRightStick ? short.MinValue : (short)0,
+        };
 
         for (int i = 0; i < 256; i++)
         {

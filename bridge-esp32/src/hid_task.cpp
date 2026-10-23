@@ -87,9 +87,18 @@ void hidTask(void* /*arg*/) {
     ControlState out{};
     JoyReport report{};
     int64_t lastPacketUs = 0;
+    // Set when a report fails to reach the host. The watchdog only marks the
+    // output dirty when it changes, so without a retry a failed report is never
+    // sent again. If that report was the fail-safe neutral, the watchdog then has
+    // no deadline left and the task would wait forever with the host still
+    // holding the last steering and pedals it received.
+    bool retryReport = false;
 
     for (;;) {
-        const int64_t deadlineMs = watchdog.nextDeadlineMs(esp_timer_get_time());
+        int64_t deadlineMs = watchdog.nextDeadlineMs(esp_timer_get_time());
+        if (retryReport && (deadlineMs < 0 || deadlineMs > cfg::kDegradedTickMs)) {
+            deadlineMs = cfg::kDegradedTickMs;
+        }
         const TickType_t wait = deadlineMs < 0
                                     ? portMAX_DELAY
                                     : pdMS_TO_TICKS(static_cast<uint32_t>(deadlineMs));
@@ -118,7 +127,7 @@ void hidTask(void* /*arg*/) {
             }
         }
 
-        if (!dirty) {
+        if (!dirty && !retryReport) {
             continue;
         }
 
@@ -129,13 +138,15 @@ void hidTask(void* /*arg*/) {
         report.buttons = out.buttons;
 
         if (joystick().send(report, cfg::kHidSendTimeoutMs)) {
+            retryReport = false;
             gReportsSent.fetch_add(1, std::memory_order_relaxed);
             if (gotMail && msg.kind == MsgKind::Packet && lastPacketUs != 0) {
                 recordJitter(static_cast<uint32_t>(esp_timer_get_time() - lastPacketUs));
             }
         } else {
-            // Not an error worth reacting to. The host may simply not have the
-            // interface open yet, and the next report is 8 ms away.
+            // The host may simply not have the interface open yet. Keep retrying
+            // the latest state every degraded tick until one gets through.
+            retryReport = true;
             gReportsFailed.fetch_add(1, std::memory_order_relaxed);
         }
     }

@@ -76,7 +76,10 @@ final class UplinkSender: @unchecked Sendable {
     /// sent, which the HUD counts but which is not itself an error.
     @discardableResult
     func send(_ state: UplinkState) -> Bool {
-        guard let connection, let completion else { return false }
+        // Motion starts while the connection is still being set up. Sends made
+        // before it is ready are queued by Network.framework and go out late, all
+        // at once, carrying controls the driver has already left.
+        guard let connection, connection.state == .ready, let completion else { return false }
         guard let slot = ring.encode(state) else { return false }
 
         let now = DispatchTime.now().uptimeNanoseconds

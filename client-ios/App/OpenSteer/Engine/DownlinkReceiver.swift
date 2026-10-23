@@ -12,6 +12,10 @@ import OpenSteerCore
 final class DownlinkReceiver: @unchecked Sendable {
     private var connection: NWConnection?
     private var running = false
+    /// Stamps each receive with the session that armed it. After a stop and a
+    /// new start, a late completion from the old connection would otherwise see
+    /// `running` true again and fail or feed the new session.
+    private var epoch: UInt64 = 0
 
     private(set) var received: UInt64 = 0
     private(set) var rejected: UInt64 = 0
@@ -23,6 +27,7 @@ final class DownlinkReceiver: @unchecked Sendable {
     var onFailure: ((NWError) -> Void)?
 
     func start(on connection: NWConnection) {
+        epoch &+= 1
         self.connection = connection
         running = true
         received = 0
@@ -31,6 +36,7 @@ final class DownlinkReceiver: @unchecked Sendable {
     }
 
     func stop() {
+        epoch &+= 1
         running = false
         connection = nil
     }
@@ -43,8 +49,9 @@ final class DownlinkReceiver: @unchecked Sendable {
     private func arm() {
         guard running, let connection else { return }
 
+        let armedEpoch = epoch
         connection.receiveMessage { [weak self] content, _, _, error in
-            guard let self, self.running else { return }
+            guard let self, self.running, self.epoch == armedEpoch else { return }
 
             if let content {
                 if let frame = DownlinkCodec.decode(content) {

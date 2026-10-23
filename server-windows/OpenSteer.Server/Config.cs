@@ -116,7 +116,7 @@ public sealed class HostConfig
                 case "--slip-full":
                     if (!float.TryParse(Next(), System.Globalization.NumberStyles.Float,
                                         System.Globalization.CultureInfo.InvariantCulture,
-                                        out float slip) || slip <= 0f)
+                                        out float slip) || !float.IsFinite(slip) || slip <= 0f)
                     {
                         error = "--slip-full needs a positive number";
                         return false;

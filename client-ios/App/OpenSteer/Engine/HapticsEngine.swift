@@ -228,13 +228,14 @@ final class HapticsEngine: @unchecked Sendable {
         ], parameters: [])
     }
 
-    /// A one-second continuous event, looped. Its intensity and sharpness are
-    /// overridden live, so the starting values here barely matter.
+    /// A one-second continuous event, looped. The live intensity control
+    /// multiplies the event's intensity and the sharpness control adds to its
+    /// sharpness, so the base values are 1 and 0 and the controls set the output.
     private static func rumblePattern() throws -> CHHapticPattern {
         try CHHapticPattern(events: [
             CHHapticEvent(eventType: .hapticContinuous, parameters: [
-                CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.2),
-                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.3),
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.0),
             ], relativeTime: 0, duration: 1.0)
         ], parameters: [])
     }

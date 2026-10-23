@@ -43,7 +43,11 @@ struct ContentView: View {
         // slide, so a press should start a little above that edge.
         .defersSystemGestures(on: .all)
         .persistentSystemOverlays(.hidden)
-        .sheet(isPresented: $showingSettings) {
+        // A swipe down closes the sheet without either button, so the settings
+        // are applied on every dismissal as well.
+        .sheet(isPresented: $showingSettings, onDismiss: {
+            session.apply(settings: settings)
+        }) {
             ConnectView(settings: settings,
                         onStart: {
                             showingSettings = false
@@ -250,12 +254,17 @@ struct ContentView: View {
 /// `onChanged` repeats while the finger moves, so the press is latched and a
 /// shaking hand cannot re-trigger it. The release is what matters most: it must
 /// fire on `onEnded` no matter where the finger was when it lifted.
+///
+/// `onEnded` runs only when the gesture succeeds. When the system cancels the
+/// touch instead, for example under an incoming call, only the `@GestureState`
+/// resets, so that reset releases the handbrake too.
 private struct HoldButton: View {
     let label: String
     let isHeld: Bool
     let onHold: (Bool) -> Void
 
     @State private var isPressed = false
+    @GestureState private var touchActive = false
 
     var body: some View {
         Text(label)
@@ -268,6 +277,7 @@ private struct HoldButton: View {
             .contentShape(Capsule())
             .gesture(
                 DragGesture(minimumDistance: 0)
+                    .updating($touchActive) { _, active, _ in active = true }
                     .onChanged { _ in
                         guard !isPressed else { return }
                         isPressed = true
@@ -278,6 +288,16 @@ private struct HoldButton: View {
                         onHold(false)
                     }
             )
+            .onChange(of: touchActive) { _, active in
+                if !active {
+                    isPressed = false
+                    onHold(false)
+                }
+            }
+            .onDisappear {
+                isPressed = false
+                onHold(false)
+            }
     }
 }
 
@@ -293,6 +313,7 @@ private struct PaddleButton: View {
     let action: () -> Void
 
     @State private var isPressed = false
+    @GestureState private var touchActive = false
 
     var body: some View {
         Text(label)
@@ -304,6 +325,7 @@ private struct PaddleButton: View {
             .contentShape(RoundedRectangle(cornerRadius: 14))
             .gesture(
                 DragGesture(minimumDistance: 0)
+                    .updating($touchActive) { _, active, _ in active = true }
                     .onChanged { _ in
                         // onChanged repeats while the finger moves, so the press
                         // is latched. Without this a shaking hand fires a burst of
@@ -314,5 +336,10 @@ private struct PaddleButton: View {
                     }
                     .onEnded { _ in isPressed = false }
             )
+            // A cancelled touch never reaches onEnded. Without this the latch
+            // stays set and the next press on this paddle is ignored.
+            .onChange(of: touchActive) { _, active in
+                if !active { isPressed = false }
+            }
     }
 }
