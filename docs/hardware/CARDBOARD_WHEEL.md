@@ -34,7 +34,7 @@ So each lever has two jobs:
   finger touches the grip, the pad becomes a "finger" on the screen. When your
   finger leaves the grip, the touch normally ends.
 - **Move the pad.** The lever's motion moves the pad to the right place: onto a
-  paddle button, or down the screen for a pedal.
+  paddle button, or up the screen for a pedal.
 
 Cardboard, paper and ordinary tape are insulators. On their own they can rest on
 the glass without registering as a touch.
@@ -47,27 +47,32 @@ code (`client-ios/App/OpenSteer/UI/ContentView.swift`, `PedalTouchView.swift` an
 
 | Screen area | Control | How it reads |
 |---|---|---|
-| Left quarter of the width | **Brake** | The pedal reads 0 where the touch starts and rises as the touch slides **down**. It reaches 100% after the "Thumb travel" distance, 140 points by default (80 to 260 in the app's settings) |
+| Left quarter of the width | **Brake** | The pedal reads 0 where the touch starts and rises as the touch slides **up**. It reaches 100% after the "Thumb travel" distance, 140 points by default (80 to 260 in the app's settings) |
 | Right quarter of the width | **Throttle** | Same as the brake |
-| Top-left corner | **DOWN** paddle (downshift) | A 120 × 72 point button, 8 points in from the side and 4 points down from the top, inside the safe area. It fires the moment it is touched |
-| Top-right corner | **UP** paddle (upshift) | Same size, mirrored |
-| Middle half | Wheel graphic, RPM bar, telemetry | Display only. Touches here do nothing |
+| Top of the middle half, left end | **DOWN** paddle (downshift) | A 104 × 64 point button at the left end of the paddle row. The row is half the width of the safe area, centered, and its top is 14 points below the top of the safe area. The button sits 12 points in from the row's left end. It fires the moment it is touched |
+| Top of the middle half, right end | **UP** paddle (upshift) | Same size, at the right end of the row. The RPM bar sits between the two paddles |
+| Rest of the middle half | Wheel graphic, RPM bar, telemetry | Display only. Touches here do nothing |
 | Middle half, bottom row | Settings, **CENTER**, **HOLD** (handbrake), **STOP** | Ordinary buttons |
 
 One point is about 0.16 mm on the iPhones that can run the app (iOS 17 or later):
 between about 0.154 and 0.166 mm, depending on the model, and more with Display Zoom
 turned on. So the
 default pedal travel is about 22 to 23 mm of slide, and each paddle button is about
-19 × 12 mm.
+16 to 17 × 10 mm.
 
 What follows from those rules:
 
-1. **A pedal pad must land below the paddle buttons.** A touch that starts inside a
-   paddle's rectangle never becomes a pedal touch: it presses the paddle instead.
+1. **Pedal pads stay in the outer quarters, paddle pads in the middle half.** Each
+   pedal zone runs the full height of the screen, and the paddle buttons sit
+   outside both zones. A paddle pad that lands in a pedal zone does not shift: it
+   starts a pedal touch there and takes that zone's one tracked touch (rule 4). The
+   gap between a paddle's outer edge and its pedal zone is 12 points plus half the
+   side inset of the safe area: about 2 mm on an iPhone with a Home button, and
+   about 6 to 7 mm on one with Face ID. Center each paddle pad on its button.
 2. **The pedal starts at zero where the touch starts.** That point is wherever the
-   pad is when your finger first touches the grip. Only the slide **down** from
-   there counts. If the pad slides past full travel, the zero point follows it, so
-   the pedal stays at 100%.
+   pad is when your finger first touches the grip. Only the slide **up** from
+   there counts. If the pad slides past full travel, the zero point follows it up,
+   so the pedal stays at 100%.
 3. **Letting go releases the pedal at once.** When your finger leaves the grip, the
    touch ends and the pedal drops to 0, wherever the pad is. The return spring only
    resets the lever for the next press.
@@ -133,14 +138,17 @@ schematic.
 
 ### 3. The upper rear paddles (UpShift and DownShift)
 
-Each paddle is a small rocker that sits on a hinge across the top edge of the phone,
-behind the left or right upper spoke.
+Each paddle is a small rocker that sits on a hinge across the top edge of the phone.
+Its blade sits near the top corner, and the rocker runs along the top edge so its arm
+reaches in over the paddle button. The buttons are not in the top corners: they sit
+at the top of the middle half, at the two ends of the paddle row, about a third of
+the screen width in from each side.
 
-1. Above the hinge, a cardboard blade stands up behind the rim, where your fingertip
-   reaches it from behind the spoke.
-2. Below the hinge, a short arm hangs in front of the screen's top corner. Its pad
+1. Above the hinge, a cardboard blade stands up behind the rim, near the top corner,
+   where your fingertip reaches it from behind the left or right spoke.
+2. Below the hinge, a short arm hangs in front of the top of the screen. Its pad
    sits over the **DOWN** button (left) or the **UP** button (right), 2 to 3 mm off
-   the glass.
+   the glass. Use the positioning sheet to center it on the button.
 3. A rubber band pulls the blade back, which holds the pad off the glass.
 4. When you pull the blade toward you, the rocker turns about the hinge and the arm
    moves the other way, so the pad taps the button.
@@ -159,12 +167,14 @@ Each trigger is a slider in a vertical channel behind the left (Brake) or right
 1. Glue two cardboard rails behind the cradle, beside the phone's side edge, to make
    a vertical channel.
 2. Make a slider that fits the channel. From it, an arm wraps around the phone's side
-   edge and holds a pad lightly on the glass in the pedal zone, below the paddle
-   button.
-3. Below the slider, a finger tab sticks out behind the lower part of the rim, where
-   your fingers curl.
-4. Hook a rubber band from the top of the channel to the slider, so the slider
-   returns upward when you let go.
+   edge and holds a pad lightly on the glass in the pedal zone. The pad rests near
+   the lower part of the zone, with at least the full pedal travel of clear glass
+   above it.
+3. From the lower end of the slider, a finger tab sticks out behind the lower part of
+   the rim, where your fingers curl. Your fingers push the tab up, and the tab pushes the slider up
+   the channel.
+4. Hook a rubber band from the bottom of the channel to the slider, so the slider
+   returns downward when you let go.
 5. Run copper tape from the finger tab, up the slider and along the arm, to the pad.
    On the arm, keep the copper on the face away from the glass, and stand the pad off
    the arm on its foam backing, so that only the pad comes near the screen.
@@ -172,8 +182,8 @@ Each trigger is a slider in a vertical channel behind the left (Brake) or right
    millimeters. The default 140 points is about 23 mm.
 
 Squeezing the tab does two things in order. First your finger touches the copper,
-so the touch starts and the pedal reads 0. Then the slider moves down, the pad
-slides down the screen, and the pedal rises.
+so the touch starts and the pedal reads 0. Then the slider moves up, the pad
+slides up the screen, and the pedal rises.
 
 ## Test it
 
@@ -208,6 +218,9 @@ These are untested, and reports are welcome:
   soft foam backing behind the pad keeps the contact steady.
 - **Contact size.** iOS may ignore a contact much smaller or much larger than a
   fingertip. Start with a 7 to 10 mm pad.
+- **Swipes from the bottom edge.** The app delays the system's swipe up from the
+  bottom edge of the screen but cannot turn it off. A pedal pad that rests right on
+  that edge and slides up may reach it, so rest the pad a little above the edge.
 - **Grip.** The whole rig turns to steer, so the levers must stay in reach of your
   fingers through the full rotation. The default rotation setting is 90 degrees each
   way.

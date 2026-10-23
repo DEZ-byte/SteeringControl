@@ -4,13 +4,13 @@ import Foundation
 ///
 /// A fixed on-screen slider fails on a phone that is being waved around: there is
 /// no edge to feel for, so the thumb drifts off it mid-corner and the pedal
-/// silently sticks. Instead the zero point is wherever the thumb lands. Pull down
+/// silently sticks. Instead the zero point is wherever the thumb lands. Push up
 /// from there to apply, and the value is always relative to that anchor.
 ///
 /// The ratchet keeps it working through a long corner. If the thumb runs past
-/// full travel the anchor follows it down, so the pedal stays pinned at 100
+/// full travel the anchor follows it up, so the pedal stays pinned at 100
 /// percent instead of saturating at an anchor the thumb can no longer reach. If
-/// the thumb goes back above the anchor, the anchor follows it up, so releasing
+/// the thumb goes back below the anchor, the anchor follows it down, so releasing
 /// is always immediate no matter how far the thumb wandered.
 public struct PedalMapper: Sendable {
     /// Points of thumb travel for the full range. Around a thumb's comfortable
@@ -33,8 +33,8 @@ public struct PedalMapper: Sendable {
 
     public var isPressed: Bool { anchorY != nil }
 
-    /// Screen coordinates grow downward, so pulling the thumb *down* the screen
-    /// gives a larger y and a larger pedal value.
+    /// Screen coordinates grow downward, so pushing the thumb *up* the screen
+    /// gives a smaller y and a larger pedal value.
     public mutating func began(at y: Double) {
         anchorY = y
         value = 0
@@ -47,14 +47,14 @@ public struct PedalMapper: Sendable {
 
         // Ratchet both ways before measuring. Doing it in this order rather than
         // after gives the same clamped number with no one-frame lag.
-        if y > a + travel {
-            a = y - travel
-        } else if y < a {
+        if y < a - travel {
+            a = y + travel
+        } else if y > a {
             a = y
         }
 
         anchorY = a
-        value = min(1, max(0, (y - a) / travel))
+        value = min(1, max(0, (a - y) / travel))
     }
 
     /// Lifting the thumb releases the pedal at once. No easing: a throttle that

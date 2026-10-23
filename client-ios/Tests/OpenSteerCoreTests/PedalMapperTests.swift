@@ -2,8 +2,8 @@ import XCTest
 @testable import OpenSteerCore
 
 final class PedalMapperTests: XCTestCase {
-    /// Screen y grows downward, so pulling the thumb down the screen means a
-    /// larger y and a larger pedal value.
+    /// Screen y grows downward, so pushing the thumb up the screen means a
+    /// smaller y and a larger pedal value.
     func testTouchDownStartsAtZeroWhereverItLands() {
         var pedal = PedalMapper(travel: 140)
         for start in [0.0, 137.5, 400.0, 812.0] {
@@ -18,58 +18,58 @@ final class PedalMapperTests: XCTestCase {
         var pedal = PedalMapper(travel: 140)
         pedal.began(at: 500)
 
-        pedal.moved(to: 500 + 35)
+        pedal.moved(to: 500 - 35)
         XCTAssertEqual(pedal.value, 0.25, accuracy: 1e-12)
 
-        pedal.moved(to: 500 + 70)
+        pedal.moved(to: 500 - 70)
         XCTAssertEqual(pedal.value, 0.5, accuracy: 1e-12)
 
-        pedal.moved(to: 500 + 140)
+        pedal.moved(to: 500 - 140)
         XCTAssertEqual(pedal.value, 1.0, accuracy: 1e-12)
         XCTAssertEqual(pedal.raw, 65535)
     }
 
-    /// The direction the app's help text promises: sliding down applies the
-    /// pedal, sliding up from the landing point never does.
-    func testSlidingDownAppliesAndSlidingUpDoesNot() {
+    /// The direction the app's help text promises: sliding up applies the
+    /// pedal, sliding down from the landing point never does.
+    func testSlidingUpAppliesAndSlidingDownDoesNot() {
         var pedal = PedalMapper(travel: 140)
         pedal.began(at: 500)
 
-        pedal.moved(to: 500 - 100)
-        XCTAssertEqual(pedal.value, 0, "sliding up must not apply the pedal")
+        pedal.moved(to: 500 + 100)
+        XCTAssertEqual(pedal.value, 0, "sliding down must not apply the pedal")
 
-        pedal.moved(to: 400 + 70)
+        pedal.moved(to: 600 - 70)
         XCTAssertEqual(pedal.value, 0.5, accuracy: 1e-12,
-                       "sliding down from the new anchor applies the pedal")
+                       "sliding up from the new anchor applies the pedal")
     }
 
-    /// The ratchet down. A thumb that runs past full travel drags the anchor with
+    /// The ratchet up. A thumb that runs past full travel drags the anchor with
     /// it, so the pedal stays pinned at 100 percent instead of being stuck at an
     /// anchor the thumb can no longer reach.
     func testRatchetFollowsTheThumbPastFullTravel() {
         var pedal = PedalMapper(travel: 140)
         pedal.began(at: 500)
-        pedal.moved(to: 900)
+        pedal.moved(to: 100)
         XCTAssertEqual(pedal.value, 1.0, accuracy: 1e-12)
 
-        // Coming back up by a quarter of the travel must give exactly 0.75, which
-        // it only can if the anchor moved down to 760.
-        pedal.moved(to: 900 - 35)
+        // Coming back down by a quarter of the travel must give exactly 0.75,
+        // which it only can if the anchor moved up to 240.
+        pedal.moved(to: 100 + 35)
         XCTAssertEqual(pedal.value, 0.75, accuracy: 1e-12)
     }
 
-    /// The ratchet up. Sliding above the anchor re-anchors, so releasing is
+    /// The ratchet down. Sliding below the anchor re-anchors, so releasing is
     /// immediate no matter how far the thumb wandered.
-    func testRatchetFollowsTheThumbAboveTheAnchor() {
+    func testRatchetFollowsTheThumbBelowTheAnchor() {
         var pedal = PedalMapper(travel: 140)
         pedal.began(at: 500)
-        pedal.moved(to: 570)
+        pedal.moved(to: 430)
         XCTAssertEqual(pedal.value, 0.5, accuracy: 1e-12)
 
-        pedal.moved(to: 300)
+        pedal.moved(to: 700)
         XCTAssertEqual(pedal.value, 0, accuracy: 1e-12)
 
-        pedal.moved(to: 300 + 70)
+        pedal.moved(to: 700 - 70)
         XCTAssertEqual(pedal.value, 0.5, accuracy: 1e-12)
     }
 
@@ -78,7 +78,7 @@ final class PedalMapperTests: XCTestCase {
     func testLiftingTheThumbReleasesAtOnce() {
         var pedal = PedalMapper(travel: 140)
         pedal.began(at: 500)
-        pedal.moved(to: 600)
+        pedal.moved(to: 400)
         XCTAssertGreaterThan(pedal.value, 0)
 
         pedal.ended()
@@ -100,9 +100,9 @@ final class PedalMapperTests: XCTestCase {
         var pedal = PedalMapper(travel: 100)
         pedal.began(at: 300)
         XCTAssertEqual(pedal.raw, 0)
-        pedal.moved(to: 350)
+        pedal.moved(to: 250)
         XCTAssertEqual(pedal.raw, 32768, "half travel rounds half away from zero")
-        pedal.moved(to: 400)
+        pedal.moved(to: 200)
         XCTAssertEqual(pedal.raw, 65535)
     }
 

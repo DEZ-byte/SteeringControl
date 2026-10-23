@@ -343,20 +343,31 @@ the sim presets turn them off.
 
 The screen is landscape. The left quarter is the brake, the right quarter is the
 throttle, and the middle half holds the wheel graphic, the readouts and every button.
-Each pedal zone tracks one touch.
+Each pedal zone runs the full height of the screen, with nothing cut out of it, and
+tracks one touch.
 
 A pedal reads 0 wherever the thumb lands (a floating anchor) and applies as the thumb
-slides down. Screen y grows downward, so `v = clamp((y − anchorY) / travel, 0, 1)`,
+slides up. Screen y grows downward, so `v = clamp((anchorY − y) / travel, 0, 1)`,
 with `travel` 140 points by default (80 to 260). If the thumb goes past full travel
-the anchor follows it, so the pedal stays at 100% and starts easing as soon as the
-thumb comes back. If the thumb moves above the anchor, the anchor moves up with it.
-Lifting the thumb returns the pedal to 0 at once. Output is `UInt16((v · 65535).rounded())`.
+the anchor follows it up, so the pedal stays at 100% and starts easing as soon as the
+thumb comes back down. If the thumb moves below the anchor, the anchor moves down with
+it, so a release is always immediate. Lifting the thumb returns the pedal to 0 at once.
+Output is `UInt16((v · 65535).rounded())`.
 
-The paddles sit in the top corners: upshift top right (bit 0), downshift top left
-(bit 1). A tap is held for at least 3 packets so a short tap is never lost. The paddle
-rectangles are cut out of the pedal zones; otherwise a paddle press would claim the
-zone's one tracked touch and the thumb on the pedal would be ignored until release.
-Handbrake (bit 2) is a hold button in the middle row.
+The paddles sit at the top of the middle half, either side of the RPM bar: upshift on
+the right (bit 0), downshift on the left (bit 1). A tap is held for at least 3 packets
+so a short tap is never lost. The paddles live in the middle half because a pedal
+applies as the thumb slides up. A thumb at full travel ends up near the top of its
+zone, so a paddle in a top corner would catch the next press. The paddle row is half
+the safe-area width, centered, with a 12-point margin at each end, and the zones are
+measured across the whole glass, so the row never reaches into either zone. Handbrake
+(bit 2) is a hold button in the row at the bottom of the middle half.
+
+An upward slide that starts right at the bottom edge looks like the system's swipe
+home. The app defers edge gestures, but on a Face ID iPhone that one cannot be
+deferred: with the home indicator hidden, the first swipe only shows it and the next
+one leaves the app. The pedal help text tells the driver to start a little above the
+edge.
 
 ### Motion capture on iOS
 

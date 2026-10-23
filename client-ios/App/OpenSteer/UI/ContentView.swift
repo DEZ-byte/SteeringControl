@@ -4,12 +4,13 @@ import OpenSteerCore
 /// The driving screen.
 ///
 /// Landscape only. The left quarter of the width is the brake, the right quarter
-/// is the throttle, and the middle half is the wheel and the readouts. The two
-/// top corners are the paddles.
+/// is the throttle, and the middle half is the wheel, the readouts and every
+/// button. The paddles sit at the top of the middle half, either side of the RPM
+/// bar.
 ///
 /// Nothing in the driving view moves under a finger. Every control is either a
-/// thumb zone with no visible boundary to miss, or a target in a corner that can
-/// be found without looking away from the screen.
+/// thumb zone with no visible boundary to miss, or a target at a fixed spot in
+/// the middle half that can be found without looking away from the screen.
 struct ContentView: View {
     @EnvironmentObject private var settings: AppSettings
     @StateObject private var session = SessionViewModel()
@@ -17,8 +18,10 @@ struct ContentView: View {
 
     @State private var showingSettings = false
 
-    private static let paddleWidth: CGFloat = 120
-    private static let paddleHeight: CGFloat = 72
+    private static let paddleWidth: CGFloat = 104
+    private static let paddleHeight: CGFloat = 64
+    /// Gap between each paddle and the end of the middle half.
+    private static let paddleZoneMargin: CGFloat = 12
 
     var body: some View {
         ZStack {
@@ -33,9 +36,11 @@ struct ContentView: View {
             }
         }
         .statusBarHidden(true)
-        // Keeps an edge swipe from pulling down Control Center or the app
-        // switcher mid-corner. The driver has to swipe twice to leave, which is
-        // the behavior every full-screen game uses.
+        // Keeps an edge swipe from pulling down Notification Center or Control
+        // Center mid-corner. The swipe home from the bottom edge of a Face ID
+        // iPhone cannot be deferred: with the home indicator hidden, the first
+        // swipe only shows it and the next one leaves. Pedals apply on an upward
+        // slide, so a press should start a little above that edge.
         .defersSystemGestures(on: .all)
         .persistentSystemOverlays(.hidden)
         .sheet(isPresented: $showingSettings) {
@@ -74,42 +79,41 @@ struct ContentView: View {
             }
             .ignoresSafeArea()
 
-            HStack(spacing: 0) {
-                PedalGauge(value: session.brake, label: "BRAKE",
-                           colour: .red, alignment: .leading)
-                    .frame(width: 60)
-                    .padding(.leading, 18)
-                    .allowsHitTesting(false)
+            GeometryReader { geometry in
+                HStack(spacing: 0) {
+                    PedalGauge(value: session.brake, label: "BRAKE",
+                               colour: .red, alignment: .leading)
+                        .frame(width: 60)
+                        .padding(.leading, 18)
+                        .allowsHitTesting(false)
 
-                Spacer(minLength: 0)
+                    Spacer(minLength: 0)
 
-                centreColumn
+                    centreColumn(middleWidth: geometry.size.width
+                                 * (1 - 2 * PedalTouchView.zoneWidthFraction))
 
-                Spacer(minLength: 0)
+                    Spacer(minLength: 0)
 
-                PedalGauge(value: session.throttle, label: "THROTTLE",
-                           colour: .green, alignment: .trailing)
-                    .frame(width: 60)
-                    .padding(.trailing, 18)
-                    .allowsHitTesting(false)
+                    PedalGauge(value: session.throttle, label: "THROTTLE",
+                               colour: .green, alignment: .trailing)
+                        .frame(width: 60)
+                        .padding(.trailing, 18)
+                        .allowsHitTesting(false)
+                }
+                .padding(.vertical, 14)
             }
-            .padding(.vertical, 14)
 
-            paddles
             statusStrip
         }
     }
 
-    private var centreColumn: some View {
+    private func centreColumn(middleWidth: CGFloat) -> some View {
         VStack(spacing: 10) {
+            paddleRow(width: middleWidth)
+
             // Every readout is hit-testing off. A shape or a label that swallows a
             // touch turns into an invisible dead patch in the middle of a thumb
             // zone, and the driver has no way to see why the pedal stopped working.
-            RpmBar(rpm: session.telemetry.frame.rpm,
-                   redline: HapticPolicy.defaultRedlineRpm)
-                .frame(maxWidth: 260)
-                .allowsHitTesting(false)
-
             WheelView(store: session.store,
                       degreesOfRotation: settings.mapper.degreesOfRotation)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -120,17 +124,56 @@ struct ContentView: View {
 
             controlRow
         }
-        .frame(maxWidth: .infinity)
+        // A fixed width, not maxWidth: .infinity. An unbounded column ties with
+        // the two spacers for flexibility, and the stack does not promise to
+        // split the room evenly between them, so the column could slide sideways
+        // and carry a paddle into a pedal zone. Fixed, the spacers share what
+        // is left and the column stays centred.
+        .frame(width: middleWidth)
     }
 
-    /// Every button in the driving view lives here, inside the middle half of the
-    /// screen.
+    /// The paddles, at the outer ends of the middle half, with the RPM bar
+    /// between them.
+    ///
+    /// They used to sit in the top corners, over the pedal zones. A pedal now
+    /// applies as the thumb slides up, so a thumb at full travel ends up near the
+    /// top of its zone, and the next press would land on a paddle instead. Here
+    /// they are a short reach in from the zone, and the zones are clear from top
+    /// to bottom.
+    ///
+    /// The row is half the safe-area width, centred, less a margin at each end.
+    /// The touch surface measures its zones across the whole glass, which is
+    /// wider by the side insets, so the row always stays clear of the zones. The
+    /// margin keeps a gap even on a phone with no side insets, where half the
+    /// safe area ends exactly on the zone edges.
+    private func paddleRow(width: CGFloat) -> some View {
+        HStack(spacing: 0) {
+            paddle(label: "DOWN", mask: .downshift)
+
+            Spacer(minLength: 10)
+
+            // Without the priority the two spacers share the gap with the bar
+            // and leave it a third of the room.
+            RpmBar(rpm: session.telemetry.frame.rpm,
+                   redline: HapticPolicy.defaultRedlineRpm)
+                .frame(maxWidth: 260)
+                .layoutPriority(1)
+                .allowsHitTesting(false)
+
+            Spacer(minLength: 10)
+
+            paddle(label: "UP", mask: .upshift)
+        }
+        .padding(.horizontal, Self.paddleZoneMargin)
+        .frame(width: width)
+    }
+
+    /// The bottom row of buttons. Like the paddles, they sit inside the middle
+    /// half of the screen.
     ///
     /// None of them may sit in a thumb zone. The touch surface tracks one touch
     /// per zone, so a button inside one claims that touch and the driver's real
-    /// thumb is then ignored for as long as the button is held. The paddles are
-    /// the single exception, and the touch surface cuts their rectangles out by
-    /// hand for exactly this reason.
+    /// thumb is then ignored for as long as the button is held.
     private var controlRow: some View {
         HStack(spacing: 12) {
             Button {
@@ -169,19 +212,6 @@ struct ContentView: View {
                     .foregroundStyle(.red.opacity(0.95))
             }
         }
-    }
-
-    private var paddles: some View {
-        VStack {
-            HStack {
-                paddle(label: "DOWN", mask: .downshift)
-                Spacer()
-                paddle(label: "UP", mask: .upshift)
-            }
-            Spacer()
-        }
-        .padding(.horizontal, 8)
-        .padding(.top, 4)
     }
 
     private func paddle(label: String, mask: ButtonMask) -> some View {

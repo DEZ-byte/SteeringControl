@@ -247,9 +247,14 @@ steering lock. The default, 180, means full lock at 90 degrees each way, about a
 as most people can turn without regripping. The options run from 120 to 360.
 
 The left quarter of the screen is the brake and the right quarter is the throttle. A
-pedal starts at zero wherever your thumb lands and applies as you slide down, so
-there is no on-screen target to find while the phone is moving. The top corners are
-the paddles.
+pedal starts at zero wherever your thumb lands and applies as you slide up, so there
+is no on-screen target to find while the phone is moving. Slide back down to ease off,
+or lift your thumb to release at once. Start each press a little above the bottom
+edge: on a Face ID iPhone, two quick swipes up from right on that edge can leave the
+app. The paddles sit at the top of the middle half,
+either side of the RPM bar: downshift on the left, upshift on the right. They stay
+out of the pedal zones, so a thumb that ends a full press near the top of the screen
+cannot hit a paddle by mistake.
 
 ## Checking performance on a device
 

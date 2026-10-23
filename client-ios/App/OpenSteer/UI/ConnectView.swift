@@ -74,7 +74,8 @@ struct ConnectView: View {
                     Text("Pedals")
                 } footer: {
                     Text("A pedal starts at zero wherever your thumb lands and applies "
-                       + "as you slide down. Travel is how far a full press takes.")
+                       + "as you slide up. Start a little above the bottom edge. "
+                       + "Travel is how far a full press takes.")
                 }
 
                 Section("Haptics") {

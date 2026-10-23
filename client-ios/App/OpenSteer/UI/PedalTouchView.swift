@@ -11,7 +11,8 @@ import OpenSteerCore
 /// of the system reassigning them mid-corner.
 struct PedalTouchView: UIViewRepresentable {
     /// Fraction of the screen width each pedal zone occupies, measured from its
-    /// own edge. The middle half is the wheel and the heads-up display.
+    /// own edge. The middle half holds the wheel, the heads-up display and every
+    /// button, the paddles included.
     static let zoneWidthFraction: CGFloat = 0.25
 
     var travel: Double
@@ -53,29 +54,12 @@ struct PedalTouchView: UIViewRepresentable {
 
         private enum Zone { case brake, throttle, neither }
 
-        // The two paddles sit over the top corners of this surface, well inside
-        // the pedal zones, so their hit rects are cut out. Without the cut-out
-        // a paddle press also claims the zone's one tracked touch, and the thumb
-        // that then reaches for the brake is ignored until the paddle is let go.
-        // The paddles keep out of the safe area and this surface does not, so the
-        // rects are measured from the inset edges rather than from the glass.
-        private static let paddleWidth: CGFloat = 120
-        private static let paddleHeight: CGFloat = 72
-        private static let paddleInset: CGFloat = 8
-        private static let paddleTopInset: CGFloat = 4
-
-        private func isUnderPaddle(_ point: CGPoint) -> Bool {
-            let bottom = safeAreaInsets.top + Self.paddleTopInset + Self.paddleHeight
-            guard point.y <= bottom else { return false }
-
-            let leftEdge = safeAreaInsets.left + Self.paddleInset + Self.paddleWidth
-            let rightInset = safeAreaInsets.right + Self.paddleInset + Self.paddleWidth
-            return point.x <= leftEdge || point.x >= bounds.width - rightInset
-        }
-
+        // Each zone runs the full height of the glass with nothing cut out of it.
+        // A pedal applies as the thumb slides up, so a thumb at full travel ends
+        // up near the top of its zone, and the next press can land there. The
+        // paddles therefore sit in the middle half with the other buttons rather
+        // than in the top corners.
         private func zone(for point: CGPoint) -> Zone {
-            if isUnderPaddle(point) { return .neither }
-
             let edge = bounds.width * PedalTouchView.zoneWidthFraction
             if point.x < edge { return .brake }
             if point.x > bounds.width - edge { return .throttle }

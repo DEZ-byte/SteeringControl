@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1000" width="1200" height="1000" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
   <title>OpenSteer DIY cardboard wheel: layout template</title>
-  <desc>Schematic, not to scale. Panel A shows the app's landscape screen layout: brake zone in the left quarter, throttle zone in the right quarter, DOWN and UP paddle buttons in the top corners, and the bottom button row. Panel B shows the wheel from the front, with the levers behind the cradle drawn dashed. Panel C shows a paddle rocker in side section. Panel D shows a pedal trigger slider.</desc>
+  <desc>Schematic, not to scale. Panel A shows the app's landscape screen layout: brake zone in the left quarter and throttle zone in the right quarter, each the full height of the screen, with pedal pads that slide up; DOWN and UP paddle buttons at the top of the middle half, either side of the RPM bar; and the bottom button row. Panel B shows the wheel from the front, with the levers behind the cradle drawn dashed. Panel C shows a paddle rocker in side section. Panel D shows a pedal trigger slider.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="#ffffff"/>
@@ -38,27 +38,31 @@
   <rect x="732" y="330" width="23" height="110" rx="6" fill="#1a7f37" fill-opacity="0.95"/>
   <text x="743" y="458" font-size="11" font-weight="600" fill="#c9d1d9" text-anchor="middle">gauge</text>
 
-  <!-- paddle buttons: 120 x 72 pt, 8 pt from the safe-area edge, 4 pt from the top -->
-  <rect x="116" y="132" width="108" height="65" rx="12" fill="#ffffff" fill-opacity="0.16" stroke="#d0d7de" stroke-width="1.5"/>
-  <text x="160" y="160" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">DOWN</text>
-  <text x="160" y="178" font-size="11" fill="#c9d1d9" text-anchor="middle">120 × 72 pt</text>
-  <circle cx="206" cy="150" r="9" fill="#c26b1f" stroke="#ffd8a8" stroke-width="2"/>
+  <!-- paddle row: half the safe-area width, centred, 14 pt from the top; DOWN and UP paddles (104 x 64 pt) either side of the RPM bar, clear of both pedal zones -->
+  <rect x="275" y="141" width="94" height="58" rx="11" fill="#ffffff" fill-opacity="0.16" stroke="#d0d7de" stroke-width="1.5"/>
+  <text x="311" y="168" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">DOWN</text>
+  <text x="311" y="186" font-size="11" fill="#c9d1d9" text-anchor="middle">104 × 64 pt</text>
+  <circle cx="355" cy="156" r="9" fill="#c26b1f" stroke="#ffd8a8" stroke-width="2"/>
 
-  <rect x="656" y="132" width="108" height="65" rx="12" fill="#ffffff" fill-opacity="0.16" stroke="#d0d7de" stroke-width="1.5"/>
-  <text x="700" y="160" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">UP</text>
-  <text x="700" y="178" font-size="11" fill="#c9d1d9" text-anchor="middle">120 × 72 pt</text>
-  <circle cx="746" cy="150" r="9" fill="#c26b1f" stroke="#ffd8a8" stroke-width="2"/>
+  <rect x="511" y="141" width="94" height="58" rx="11" fill="#ffffff" fill-opacity="0.16" stroke="#d0d7de" stroke-width="1.5"/>
+  <text x="547" y="168" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">UP</text>
+  <text x="547" y="186" font-size="11" fill="#c9d1d9" text-anchor="middle">104 × 64 pt</text>
+  <circle cx="591" cy="156" r="9" fill="#c26b1f" stroke="#ffd8a8" stroke-width="2"/>
 
-  <!-- pedal pads at rest, below the paddles, and their slide -->
-  <circle cx="190" cy="238" r="12" fill="#c26b1f" stroke="#ffd8a8" stroke-width="2"/>
-  <line x1="190" y1="254" x2="190" y2="362" stroke="#ffffff" stroke-width="3" marker-end="url(#arrow)"/>
-  <text x="206" y="242" font-size="11" fill="#ffffff">0 %</text>
-  <text x="200" y="360" font-size="11" fill="#ffffff">100 %</text>
+  <rect x="379" y="164" width="122" height="12" rx="6" fill="#ffffff" fill-opacity="0.10"/>
+  <rect x="379" y="164" width="78" height="12" rx="6" fill="#c9d1d9" fill-opacity="0.55"/>
+  <text x="440" y="192" font-size="11" fill="#8c959f" text-anchor="middle">RPM bar</text>
 
-  <circle cx="690" cy="238" r="12" fill="#c26b1f" stroke="#ffd8a8" stroke-width="2"/>
-  <line x1="690" y1="254" x2="690" y2="362" stroke="#ffffff" stroke-width="3" marker-end="url(#arrow)"/>
-  <text x="674" y="242" font-size="11" fill="#ffffff" text-anchor="end">0 %</text>
-  <text x="680" y="360" font-size="11" fill="#ffffff" text-anchor="end">100 %</text>
+  <!-- pedal pads at rest, low in each zone, and their upward slide -->
+  <circle cx="190" cy="362" r="12" fill="#c26b1f" stroke="#ffd8a8" stroke-width="2"/>
+  <line x1="190" y1="346" x2="190" y2="238" stroke="#ffffff" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="206" y="366" font-size="11" fill="#ffffff">0 %</text>
+  <text x="200" y="242" font-size="11" fill="#ffffff">100 %</text>
+
+  <circle cx="690" cy="362" r="12" fill="#c26b1f" stroke="#ffd8a8" stroke-width="2"/>
+  <line x1="690" y1="346" x2="690" y2="238" stroke="#ffffff" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="674" y="366" font-size="11" fill="#ffffff" text-anchor="end">0 %</text>
+  <text x="680" y="242" font-size="11" fill="#ffffff" text-anchor="end">100 %</text>
 
   <text x="200" y="408" font-size="17" font-weight="700" fill="#ffffff" text-anchor="middle">BRAKE</text>
   <text x="200" y="426" font-size="12" fill="#ffffff" text-anchor="middle">left ¼</text>
@@ -66,7 +70,7 @@
   <text x="676" y="426" font-size="12" fill="#ffffff" text-anchor="middle">right ¼</text>
 
   <!-- middle half -->
-  <text x="440" y="270" font-size="14" fill="#8c959f" text-anchor="middle">wheel graphic, RPM bar, telemetry</text>
+  <text x="440" y="270" font-size="14" fill="#8c959f" text-anchor="middle">wheel graphic and telemetry</text>
   <text x="440" y="290" font-size="12" fill="#8c959f" text-anchor="middle">display only: touches here do nothing</text>
 
   <!-- bottom button row, pressed by finger -->
@@ -96,15 +100,15 @@
   <circle cx="881" cy="252" r="9" fill="#c26b1f" stroke="#7a3e0c" stroke-width="2"/>
   <text x="902" y="249" font-size="13" fill="#1f2328">Conductive pad, wired by</text>
   <text x="902" y="265" font-size="13" fill="#1f2328">copper tape to your finger</text>
-  <line x1="881" y1="280" x2="881" y2="306" stroke="#1f2328" stroke-width="3" marker-end="url(#arrowDark)"/>
-  <text x="902" y="289" font-size="13" fill="#1f2328">Pedal pad slides down:</text>
+  <line x1="881" y1="306" x2="881" y2="280" stroke="#1f2328" stroke-width="3" marker-end="url(#arrowDark)"/>
+  <text x="902" y="289" font-size="13" fill="#1f2328">Pedal pad slides up:</text>
   <text x="902" y="305" font-size="13" fill="#1f2328">0 to 100 % over 140 pt (about</text>
   <text x="902" y="321" font-size="13" fill="#1f2328">23 mm); Thumb travel 80 to 260</text>
   <line x1="881" y1="334" x2="881" y2="360" stroke="#8c959f" stroke-width="1.5" stroke-dasharray="6 5"/>
   <text x="902" y="345" font-size="13" fill="#1f2328">Safe-area edge on Face ID</text>
   <text x="902" y="361" font-size="13" fill="#1f2328">iPhones; paddles sit inside it</text>
   <text x="870" y="392" font-size="13" font-weight="700" fill="#1f2328">Rules</text>
-  <text x="870" y="410" font-size="12" fill="#1f2328">• Pedal pads start below the paddles.</text>
+  <text x="870" y="410" font-size="12" fill="#1f2328">• Pedal pads start low in their zone.</text>
   <text x="870" y="427" font-size="12" fill="#1f2328">• A pedal reads 0 where the touch starts.</text>
   <text x="870" y="444" font-size="12" fill="#1f2328">• Finger off the copper: pedal 0 at once.</text>
   <text x="870" y="461" font-size="12" fill="#1f2328">• One pad per pedal zone.</text>
@@ -128,28 +132,28 @@
   <rect x="95" y="717" width="230" height="106" rx="8" fill="#0d1117"/>
   <rect x="95" y="717" width="57" height="106" fill="#cf222e" fill-opacity="0.35"/>
   <rect x="268" y="717" width="57" height="106" fill="#1a7f37" fill-opacity="0.35"/>
-  <rect x="113" y="718" width="32" height="19" rx="4" fill="#ffffff" fill-opacity="0.25"/>
-  <rect x="275" y="718" width="32" height="19" rx="4" fill="#ffffff" fill-opacity="0.25"/>
+  <rect x="161" y="720" width="28" height="17" rx="4" fill="#ffffff" fill-opacity="0.25"/>
+  <rect x="231" y="720" width="28" height="17" rx="4" fill="#ffffff" fill-opacity="0.25"/>
   <!-- finger window over the bottom button row -->
   <rect x="170" y="823" width="80" height="10" fill="#ffffff" stroke="#57ab5a" stroke-width="1.5" stroke-dasharray="4 3"/>
 
-  <!-- paddle rockers behind the top corners -->
-  <rect x="104" y="650" width="44" height="58" rx="6" fill="none" stroke="#8b5e34" stroke-width="2" stroke-dasharray="6 4"/>
-  <rect x="272" y="650" width="44" height="58" rx="6" fill="none" stroke="#8b5e34" stroke-width="2" stroke-dasharray="6 4"/>
-  <path d="M126,656 L126,727" fill="none" stroke="#c26b1f" stroke-width="3"/>
-  <path d="M294,656 L294,727" fill="none" stroke="#c26b1f" stroke-width="3"/>
-  <circle cx="126" cy="727" r="6" fill="#c26b1f" stroke="#ffd8a8" stroke-width="1.5"/>
-  <circle cx="294" cy="727" r="6" fill="#c26b1f" stroke="#ffd8a8" stroke-width="1.5"/>
+  <!-- paddle rockers along the top edge: blade behind each top corner, arm reaching in over its paddle button -->
+  <rect x="104" y="650" width="82" height="58" rx="6" fill="none" stroke="#8b5e34" stroke-width="2" stroke-dasharray="6 4"/>
+  <rect x="234" y="650" width="82" height="58" rx="6" fill="none" stroke="#8b5e34" stroke-width="2" stroke-dasharray="6 4"/>
+  <path d="M126,656 L126,690 L175,690 L175,729" fill="none" stroke="#c26b1f" stroke-width="3"/>
+  <path d="M294,656 L294,690 L245,690 L245,729" fill="none" stroke="#c26b1f" stroke-width="3"/>
+  <circle cx="175" cy="729" r="6" fill="#c26b1f" stroke="#ffd8a8" stroke-width="1.5"/>
+  <circle cx="245" cy="729" r="6" fill="#c26b1f" stroke="#ffd8a8" stroke-width="1.5"/>
 
   <!-- pedal trigger channels behind the left and right edges -->
   <rect x="70" y="745" width="20" height="130" fill="none" stroke="#8b5e34" stroke-width="2" stroke-dasharray="6 4"/>
   <rect x="330" y="745" width="20" height="130" fill="none" stroke="#8b5e34" stroke-width="2" stroke-dasharray="6 4"/>
-  <path d="M60,800 L80,800 L80,760 L118,760" fill="none" stroke="#c26b1f" stroke-width="3"/>
-  <path d="M360,800 L340,800 L340,760 L302,760" fill="none" stroke="#c26b1f" stroke-width="3"/>
-  <circle cx="118" cy="760" r="6" fill="#c26b1f" stroke="#ffd8a8" stroke-width="1.5"/>
-  <circle cx="302" cy="760" r="6" fill="#c26b1f" stroke="#ffd8a8" stroke-width="1.5"/>
-  <line x1="118" y1="768" x2="118" y2="806" stroke="#ffffff" stroke-width="2" marker-end="url(#arrow)"/>
-  <line x1="302" y1="768" x2="302" y2="806" stroke="#ffffff" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M60,830 L80,830 L80,812 L118,812" fill="none" stroke="#c26b1f" stroke-width="3"/>
+  <path d="M360,830 L340,830 L340,812 L302,812" fill="none" stroke="#c26b1f" stroke-width="3"/>
+  <circle cx="118" cy="812" r="6" fill="#c26b1f" stroke="#ffd8a8" stroke-width="1.5"/>
+  <circle cx="302" cy="812" r="6" fill="#c26b1f" stroke="#ffd8a8" stroke-width="1.5"/>
+  <line x1="118" y1="804" x2="118" y2="766" stroke="#ffffff" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="302" y1="804" x2="302" y2="766" stroke="#ffffff" stroke-width="2" marker-end="url(#arrow)"/>
 
   <!-- labels -->
   <text x="40" y="612" font-size="12" fill="#1f2328">DOWN paddle rocker</text>
@@ -206,9 +210,11 @@
   <text x="440" y="832" font-size="13" fill="#1f2328">the rocker turns about the hinge, the arm swings</text>
   <text x="440" y="850" font-size="13" fill="#1f2328">the other way, and the pad taps the DOWN or UP</text>
   <text x="440" y="868" font-size="13" fill="#1f2328">button. The rubber band lifts it off again.</text>
-  <text x="440" y="896" font-size="13" fill="#1f2328">The pad is live only while your finger is on the</text>
-  <text x="440" y="914" font-size="13" fill="#1f2328">copper, so it should register only when you pull.</text>
-  <text x="440" y="942" font-size="13" fill="#1f2328">One touch is one shift: holding does not repeat.</text>
+  <text x="440" y="890" font-size="13" fill="#1f2328">The blade sits at the corner. The rocker runs along</text>
+  <text x="440" y="908" font-size="13" fill="#1f2328">the top edge so the arm reaches in over the button.</text>
+  <text x="440" y="930" font-size="13" fill="#1f2328">The pad is live only while your finger is on the</text>
+  <text x="440" y="948" font-size="13" fill="#1f2328">copper, so it should register only when you pull.</text>
+  <text x="440" y="970" font-size="13" fill="#1f2328">One touch is one shift: holding does not repeat.</text>
 
   <!-- ============ Panel D: pedal trigger ============ -->
   <line x1="800" y1="540" x2="800" y2="990" stroke="#d0d7de" stroke-width="1"/>
@@ -218,35 +224,34 @@
   <!-- left part of the screen -->
   <rect x="960" y="600" width="200" height="200" rx="18" fill="#0d1117"/>
   <rect x="960" y="600" width="120" height="200" fill="#cf222e" fill-opacity="0.30"/>
-  <rect x="990" y="606" width="80" height="44" rx="8" fill="#ffffff" fill-opacity="0.16" stroke="#d0d7de" stroke-width="1"/>
-  <text x="1030" y="633" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">DOWN</text>
+  <rect x="1094" y="608" width="60" height="38" rx="8" fill="#ffffff" fill-opacity="0.16" stroke="#d0d7de" stroke-width="1"/>
+  <text x="1124" y="632" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">DOWN</text>
   <text x="1020" y="790" font-size="12" fill="#ffffff" text-anchor="middle">brake zone</text>
 
   <!-- channel rails behind the phone's left edge -->
   <rect x="880" y="610" width="10" height="185" fill="none" stroke="#8b5e34" stroke-width="2" stroke-dasharray="6 4"/>
   <rect x="922" y="610" width="10" height="185" fill="none" stroke="#8b5e34" stroke-width="2" stroke-dasharray="6 4"/>
   <!-- slider, arm over the edge, pad -->
-  <rect x="890" y="680" width="32" height="44" fill="#d4a373" stroke="#8b5e34" stroke-width="1.5"/>
-  <rect x="922" y="694" width="96" height="14" fill="#d4a373" stroke="#8b5e34" stroke-width="1.5"/>
-  <circle cx="1022" cy="701" r="11" fill="#c26b1f" stroke="#ffd8a8" stroke-width="2"/>
-  <line x1="1022" y1="716" x2="1022" y2="770" stroke="#ffffff" stroke-width="3" marker-end="url(#arrow)"/>
-  <text x="1040" y="736" font-size="12" fill="#ffffff">slides down:</text>
-  <text x="1040" y="752" font-size="12" fill="#ffffff">0 to 100 %</text>
+  <rect x="890" y="681" width="32" height="44" fill="#d4a373" stroke="#8b5e34" stroke-width="1.5"/>
+  <rect x="922" y="697" width="96" height="14" fill="#d4a373" stroke="#8b5e34" stroke-width="1.5"/>
+  <circle cx="1022" cy="704" r="11" fill="#c26b1f" stroke="#ffd8a8" stroke-width="2"/>
+  <line x1="1022" y1="689" x2="1022" y2="635" stroke="#ffffff" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="1040" y="664" font-size="12" fill="#ffffff">slides up:</text>
+  <text x="1040" y="680" font-size="12" fill="#ffffff">0 to 100 %</text>
   <!-- finger tab -->
-  <rect x="840" y="724" width="50" height="22" fill="#d4a373" stroke="#8b5e34" stroke-width="1.5"/>
-  <line x1="865" y1="752" x2="865" y2="790" stroke="#1f2328" stroke-width="2.5" marker-end="url(#arrowDark)"/>
-  <text x="820" y="812" font-size="12" fill="#1f2328">finger tab: squeeze down</text>
+  <rect x="840" y="703" width="50" height="22" fill="#d4a373" stroke="#8b5e34" stroke-width="1.5"/>
+  <line x1="865" y1="697" x2="865" y2="625" stroke="#1f2328" stroke-width="2.5" marker-end="url(#arrowDark)"/>
+  <text x="820" y="600" font-size="12" fill="#1f2328">finger tab: push up</text>
   <!-- copper tape -->
-  <path d="M848,735 L906,735 L906,701 L1011,701" fill="none" stroke="#c26b1f" stroke-width="3"/>
+  <path d="M848,714 L906,714 L906,704 L1011,704" fill="none" stroke="#c26b1f" stroke-width="3"/>
   <!-- rubber band -->
-  <path d="M906,612 L898,624 L914,636 L898,648 L914,660 L906,680" fill="none" stroke="#8250df" stroke-width="2.5"/>
-  <text x="820" y="600" font-size="12" fill="#8250df">rubber band</text>
-  <text x="820" y="616" font-size="12" fill="#8250df">returns it up</text>
+  <path d="M906,793 L898,781 L914,769 L898,757 L914,745 L906,725" fill="none" stroke="#8250df" stroke-width="2.5"/>
+  <text x="820" y="816" font-size="12" fill="#8250df">rubber band returns it down</text>
   <!-- notes -->
   <text x="820" y="850" font-size="13" fill="#1f2328">Touch the copper first: the pedal reads 0.</text>
-  <text x="820" y="868" font-size="13" fill="#1f2328">Then slide down: the pedal rises.</text>
-  <text x="820" y="896" font-size="13" fill="#1f2328">The pad rests lightly on the glass, below</text>
-  <text x="820" y="914" font-size="13" fill="#1f2328">the DOWN button.</text>
+  <text x="820" y="868" font-size="13" fill="#1f2328">Then slide up: the pedal rises.</text>
+  <text x="820" y="896" font-size="13" fill="#1f2328">The pad rests lightly on the glass, low in</text>
+  <text x="820" y="914" font-size="13" fill="#1f2328">the zone with the full travel clear above it.</text>
   <text x="820" y="942" font-size="13" fill="#1f2328">Channel length: at least the pedal travel</text>
   <text x="820" y="960" font-size="13" fill="#1f2328">plus a few mm (140 pt is about 23 mm).</text>
 </svg>
