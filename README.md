@@ -3,7 +3,7 @@
 [![CI](https://github.com/DEZ-byte/SteeringControl/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/DEZ-byte/SteeringControl/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> 💡 **New here?** Read on for the overview, visual diagrams, and quickstart.
+> 💡 **New here?** Read on for the overview, the data-flow diagram, and quickstart.
 > 
 > ⚙️ Skip to **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the byte-level wire protocol, quaternion twist-swing derivations, lock-free seqlock memory ordering, and latency histograms.
 
@@ -30,59 +30,27 @@ So I decided to build my own from scratch to fix all of that.
 OpenSteer splits the work into two streams. A **100 Hz control uplink** carries your steering and pedals from the phone to the PC. A **60 Hz haptic downlink** carries the car's engine speed, tire slip, ABS and traction control back to the phone, which you feel as vibration.
 
 ```mermaid
-flowchart LR
-    subgraph bridge["Optional ESP32-S3 path, no downlink"]
-        direction LR
-        phoneB["iPhone"] -- "same 32 B uplink<br/>to 192.168.4.1:9999" --> esp["ESP32-S3 bridge<br/>its own Wi-Fi network"]
-        esp -- "USB HID joystick,<br/>no PC software" --> gameB["Game"]
-    end
-    subgraph downlink["60 Hz haptic downlink"]
-        direction LR
-        shm[("Assetto Corsa<br/>shared memory<br/>Local\acpmf_physics")] -- "seqlock-style read" --> daemonOut["Windows daemon<br/>OpenSteer.Server"]
-        daemonOut -- "16 B UDP packet" --> phoneOut["iPhone<br/>CoreHaptics<br/>RPM, slip, ABS, TC"]
-    end
+flowchart TB
     subgraph uplink["100 Hz control uplink"]
         direction LR
         phoneIn["iPhone<br/>CoreMotion twist-swing,<br/>thumb pedals, paddles"] -- "32 B UDP packet" --> daemonIn["Windows daemon<br/>OpenSteer.Server<br/>validate, lease, watchdog"]
         daemonIn -- "ViGEmClient.dll" --> vigem["ViGEmBus<br/>virtual Xbox 360 pad"]
         vigem --> game["Game<br/>(driven in Assetto Corsa)"]
     end
+    subgraph downlink["60 Hz haptic downlink"]
+        direction LR
+        shm[("Assetto Corsa<br/>shared memory<br/>Local\acpmf_physics")] -- "seqlock-style read" --> daemonOut["Windows daemon<br/>OpenSteer.Server"]
+        daemonOut -- "16 B UDP packet" --> phoneOut["iPhone<br/>CoreHaptics<br/>RPM, slip, ABS, TC"]
+    end
+    subgraph bridge["Optional ESP32-S3 path"]
+        direction LR
+        phoneB["iPhone"] -- "same 32 B uplink<br/>to 192.168.4.1:9999" --> esp["ESP32-S3 bridge<br/>its own Wi-Fi network,<br/>no downlink"]
+        esp -- "USB HID joystick,<br/>no PC software" --> gameB["Game"]
+    end
+    uplink ~~~ downlink ~~~ bridge
 ```
 
-The same system by component:
-
-```text
-  ┌─────────────────────────────────────────────────────────────────────────┐
-  │                        iPhone Client (client-ios)                       │
-  │  • CMMotionManager @ 100 Hz (.xArbitraryZVertical)                      │
-  │  • Quaternion twist-swing decomposition around screen normal (Z)        │
-  │  • Floating-anchor thumb pedals + tap shift paddles                     │
-  │  • CoreHaptics driven by the 60 Hz downlink (RPM, slip, ABS, TC)        │
-  └───────────────────┬─────────────────────────────────────▲───────────────┘
-                      │ 32-byte UDP Uplink (100 Hz)         │ 16-byte UDP Downlink (60 Hz)
-                      │ Magic 0x4F535452 + XXH32            │ Magic 0x46464231, no checksum
-                      ▼                                     │
-  ┌─────────────────────────────────────────────────────────┴───────────────┐
-  │                  Windows Host Daemon (OpenSteer.Server)                 │
-  │  • T1 Hot Loop: blocking socket poll + 64-packet non-blocking drain     │
-  │  • Zero heap allocations on hot path (Span<byte>, pre-sized buffers)    │
-  │  • Watchdog: 100 ms pedal decay -> 250 ms coasting fail-safe            │
-  │  • T2 Telemetry: lock-free seqlock reader on Assetto Corsa shared mem   │
-  └───────────────────┬─────────────────────────────────────▲───────────────┘
-                      │ P/Invoke (ViGEmClient.dll)          │ Local\acpmf_physics
-                      ▼                                     │
-  ┌─────────────────────────────────────────────────────────┴───────────────┐
-  │               Windows Kernel (ViGEmBus) & Sim Racing Title              │
-  │  • Appears as an Xbox 360 controller (driven in Assetto Corsa)          │
-  └─────────────────────────────────────────────────────────────────────────┘
-
-  Optional Driverless Path (bridge-esp32, no downlink, no telemetry haptics):
-  [iPhone 100 Hz UDP] ──► [ESP32-S3 Wi-Fi SoftAP (192.168.4.1:9999)] ──► [PC USB-HID Joystick]
-```
-
-> **Optional ESP32-S3 bridge:** the phone joins the bridge's own Wi-Fi network and sends the same 32-byte uplink to `192.168.4.1:9999`. The bridge shows up on the PC as a plain USB HID joystick, so the PC needs no driver and no software. The bridge has no telemetry, so that path has no downlink: no engine rumble and no ABS or TC ticks. The haptics that come from your own inputs, the shift click and the brake lockup thud, still play.
-
-Target end-to-end LAN latency is **under 3 ms**. That is a design budget: the full path from the phone's sensor to the controller has not been timed. On a real drive, the PC's part of it, from receiving a packet to updating the controller, had a p99 of **0.25 ms** in a typical second ([Measured on Track](#measured-on-track)). With the daemon started with `--echo-rtt` and `--mode none` (no controller output), a Python mock phone on the same Windows PC measured an uplink-to-downlink loopback round trip of **173 µs** median and **517 µs** p99. Full architecture details, quaternion derivations, and benchmark tables are in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+On a real drive, the PC turned a received packet into a controller update in **0.25 ms** at p99 in a typical second ([Measured on Track](#measured-on-track)), though the full path from the phone's sensor has not been timed. In a loopback test with the daemon started with `--echo-rtt` and `--mode none`, a Python mock phone on the same PC measured a round trip of **173 µs** median and **517 µs** p99; the full architecture, the math and the benchmark tables are in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
 ---
 
@@ -121,20 +89,24 @@ Every component builds and passes its automated test suite in CI across Windows,
 
 ## Measured on Track
 
-On 2026-10-23 I drove Assetto Corsa with the app on a physical iPhone (iOS 27.0.1), over home Wi-Fi to the daemon on a Windows PC with the real ViGEm driver. The daemon logged one stats line per second. The phone was connected for 6 min 39 s, about 5 minutes of it on track.
+On 2026-10-23 I drove Assetto Corsa twice with the app on a physical iPhone (iOS 27.0.1), over home Wi-Fi to the daemon on a Windows PC with the real ViGEm driver. The daemon logged one stats line per second. The second drive used the new pedal layout from commit `8e177d3`: the pedals apply on an upward slide, and the paddles sit either side of the RPM bar.
 
-| Measure | Result |
-|---|---|
-| Packets received | **39,941**, at **100** per second |
-| Packets lost | **18** (**0.045%**) |
-| Corrupted, duplicate or out-of-order packets | **0** |
-| PC receive-to-controller time, p99 per second, on track | **0.25 ms** typical, **0.65 ms** worst |
-| Gen-0 garbage collections | **0** for the whole session |
-| Haptic downlink, sent by the PC | **60** frames per second |
-| Packet spacing, p99 per second | about **24 ms** typical, because Wi-Fi delivers in bunches |
-| Wi-Fi gaps that tripped the 100 ms watchdog timeout | **22**, median **107 ms** |
+| Measure | First drive | Second drive | Both drives |
+|---|---|---|---|
+| Connected | 6 min 39 s | 17 min 26 s | about **24 min** |
+| On track | about 5 min | about 14 min | about **19 min** |
+| Packets received, at **100** per second | 39,941 | 104,677 | **144,618** |
+| Packets lost | 18 (0.045%) | 75 (0.072%) | **93** (**0.064%**) |
+| Corrupted or duplicate packets | 0 | 0 | **0** |
+| Out-of-order packets, rejected | 0 | 7, all in the second after one stall | **7** |
+| PC receive-to-controller time, p99 per second, on track | 0.25 ms typical, 0.65 ms worst | 0.25 ms typical, 0.80 ms worst | **0.25 ms** typical |
+| Gen-0 garbage collections | 0 | 0 | **0** |
+| Haptic downlink, sent by the PC | 60 frames per second | 60 frames per second | **60** frames per second |
+| Packet spacing, p99 per second | about 24 ms typical | about 20 ms typical | Wi-Fi delivers in bunches |
+| Wi-Fi gaps that tripped the 100 ms watchdog timeout | 22, median 107 ms | 46, median 106 ms | **68** |
+| Gaps that passed the 250 ms fail-safe limit | 1 (273 ms) | 4 (263 to 524 ms) | **5** |
 
-The burst drain and the watchdog handled the Wi-Fi. When packets arrived in a bunch, the daemon used the newest and skipped the rest, 1,348 packets in all, so the wheel never replayed old motion. In 21 of the 22 gaps the link came back before the 250 ms fail-safe: the wheel held its angle, the pedals began to ease off once the gap passed 100 ms, and control resumed with the next packet. The longest gap, 273 ms, passed that limit. The watchdog centered the wheel and coasted, then blended the steering back in over 300 ms. Seventeen of the gaps started on an exact 5-second grid, fifteen of them on a 10-second beat. Neither the daemon nor the app runs anything on a 5- or 10-second period, so the likely source is the Wi-Fi link; it has not been traced.
+The burst drain and the watchdog handled the Wi-Fi. When packets arrived in a bunch, the daemon used the newest and skipped the rest (1,348 packets in the first drive, 2,472 in the second), so the wheel never replayed old motion. In most gaps the link came back before the 250 ms fail-safe: the wheel held its angle, the pedals began to ease off once the gap passed 100 ms, and control resumed with the next packet. Five gaps passed that limit, the longest 524 ms. Each time, the watchdog centered the wheel and released the pedals, then blended the steering back in over 300 ms. After one of them, 7 older packets arrived behind newer ones, and the daemon rejected them instead of replaying them. In the first drive, 17 of the 22 gaps started on an exact 5-second grid, 15 of them on a 10-second beat. In the second, 41 of the 46 started on one of two exact 5-second grids 0.2 s apart, 40 of them on a 10-second beat. Neither the daemon nor the app runs anything on a 5- or 10-second period, so the likely source is the Wi-Fi link; it has not been traced.
 
 The iPhone sends 100 packets a second, not 120. The app asks Core Motion for 120 updates a second, and iOS delivers at the hardware's maximum instead, which on this iPhone is 100. Full figures and targets are in [docs/ARCHITECTURE.md § 8](docs/ARCHITECTURE.md#8-measured-performance).
 

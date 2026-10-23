@@ -274,10 +274,11 @@ output: expect R ± 2 packets per second, under 0.1% drops and an inter-arrival 
 under 12 ms. Display hitches are measured with Instruments (Animation Hitches): under
 5 ms per second, and no hang over 250 ms.
 
-On the first real drive, the median rate of 100 packets per second and the loss of
-0.045% met these figures, although 28 of the 399 full one-second windows fell outside
-R ± 2 during Wi-Fi gaps. The inter-arrival p99 did not meet its figure. It was about
-24 ms in a typical second, because Wi-Fi delivered the packets in bunches; the
+On both real drives, the median rate of 100 packets per second and the loss (0.045%
+and 0.072%) met these figures, although 28 of 399 and 71 of 1045 full one-second
+windows fell outside R ± 2 during Wi-Fi gaps. The inter-arrival p99 did not meet its
+figure. It was about 24 ms and 20 ms in a typical second, because Wi-Fi delivered the
+packets in bunches; the
 daemon's burst drain uses the newest packet of each bunch.
 
 The app asks Core Motion for an update every 1/120 s
@@ -327,7 +328,7 @@ and its status line keeps reading "Streaming to".
 
 ## Not done yet
 
-- Only the PC side of the first real drive was logged. The on-phone checks above,
+- Only the PC side of the two real drives was logged. The on-phone checks above,
   the diagnostics line and the Instruments hitch check, have not been recorded yet.
 - There is no discovery. The PC's address is typed once and remembered.
 - The optional sub-bass audio effect is not implemented.

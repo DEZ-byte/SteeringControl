@@ -381,8 +381,8 @@ the send call. These are design budgets; they have not been measured on a phone.
 
 The interval is a request, not a promise. When it is faster than the hardware
 allows, Core Motion delivers at the hardware's maximum instead. On the iPhone tested
-(iOS 27.0.1) that was 100 Hz: in every second of the drive in section 8, the
-daemon's median inter-arrival was between 9.8 and 10.3 ms. A real phone therefore
+(iOS 27.0.1) that was 100 Hz: in every second of both drives in section 8, the
+daemon's median inter-arrival was between 9.7 and 10.3 ms. A real phone therefore
 sends 100 packets a second.
 
 The sensor loop never runs on the main queue. SwiftUI shares the main queue with
@@ -1015,8 +1015,47 @@ nor the app has anything on a 5- or 10-second period, so the likely source is th
 Wi-Fi link, such as power saving or a background scan; it has not been traced. The 1348 coalesced packets are the same bunching seen
 from the other side: the burst drain used the newest packet of each bunch.
 
+### Second drive, new pedal layout
+
+Driven the same day after commit `8e177d3`, which makes the pedals apply on an upward
+slide and moves the paddles either side of the RPM bar. Same phone, network and
+daemon. The phone was connected for 17 min 26 s (1047 one-second windows, the first
+and the last partial), about 14 minutes of it on track (838 windows with the physics
+page attached).
+
+| Metric | Measured | Target |
+|---|---|---|
+| Packet rate | 100 per second in the median window; inter-arrival p50 between 9.70 and 10.25 ms in every window | the rate the phone delivers |
+| Packets accepted | 104 677 | |
+| Lost to sequence gaps | 75, 0.072% | under 0.1% |
+| Bad length, magic, checksum or padding | 0 | 0 |
+| Duplicate | 0 | 0 |
+| Stale | 7, all in the window in which the 297 ms stall ended | 0 |
+| Other source, socket errors | 0 | 0 |
+| Receive to inject p99, on track | 250 µs in the median window; 800 µs in the worst, over target | under 500 µs |
+| Receive to inject p99, worst window off track | 1200 µs, over target | under 500 µs |
+| Inter-arrival p99 | about 20.5 ms in the median window; at least 51.2 ms (the histogram's ceiling) in the worst 91 windows | under 12 ms, not met |
+| Coalesced in a burst | 2472 | |
+| Gen-0 garbage collections | 0 | 0 |
+| Downlink rate, sent by the daemon | 60 per second in 1016 of 1047 windows; 59 to 61 in all but 4: the first and the last, and the windows in which the 297 ms and 524 ms stalls ended | 58 to 62 |
+
+The uplink tripped the 100 ms timeout 46 times (median 106 ms, longest 524 ms; the
+watchdog noticed each one 100.0 to 105.0 ms in), and once more when the phone
+disconnected at the end. Forty-two stalls went straight back to Live. Four crossed
+the 250 ms limit, at 263, 281, 297 and 524 ms: FailSafe centered the wheel and
+released the pedals, and each time the link came back through Recovering and the
+300 ms steering slew. Just after the 297 ms stall, 7 packets arrived behind newer
+ones and were rejected as stale, so no old motion was replayed. Forty-one of the 46
+stalls started on a 5-second grid, 40 of them on a 10-second beat, as in the first
+drive, but on two grids 0.2 s apart instead of one: 20 stalls started within 7 ms
+of one and 21 within 10 ms of the other.
+
+Across both drives: about 24 minutes connected, about 19 minutes on track, 144 618
+packets accepted, 93 lost to sequence gaps (0.064%), and no Gen-0 garbage
+collections.
+
 The end-to-end time from the phone's sensor to the controller was not measured. The
-phone and the PC share no clock, and this drive did not use `--echo-rtt`.
+phone and the PC share no clock, and neither drive used `--echo-rtt`.
 
 ## 9. Design invariants
 
