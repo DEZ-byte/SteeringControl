@@ -2,7 +2,7 @@
 
 The phone half of OpenSteer. It reads the gyroscope, turns the twist of the device
 into a steering axis, adds two thumb pedals and two paddles, and streams the result
-to the Windows daemon at 120 Hz. Telemetry comes back on the same connection and is
+to the Windows daemon at 100 Hz. Telemetry comes back on the same connection and is
 played as haptics.
 
 **Status:** the core library and the app build and pass their tests in CI on a macOS
@@ -11,7 +11,10 @@ app for a real iPhone as `OpenSteer-unsigned.ipa`. The
 [latest release](https://github.com/DEZ-byte/SteeringControl/releases/latest) has it
 as a download, and you can sideload it from Windows without a Mac (see
 [Installing on an iPhone Without a Mac](#installing-on-an-iphone-without-a-mac-sideloading-ipa-on-windows)).
-The app has not yet been run on a physical iPhone.
+The app has been verified end-to-end on a physical iPhone (iOS 27.0.1), driving
+Assetto Corsa over Wi-Fi with the 60 Hz haptic downlink coming back
+([measurements](../README.md#measured-on-track)). That copy was the unsigned `.ipa`,
+sideloaded with a free Apple ID.
 
 The design is described in [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md): the twist
 math, the wire format, the queues, the link state machine and the haptics policy.
@@ -124,7 +127,8 @@ the signing and the install, so you need neither a Mac nor a paid Apple Develope
 account.
 
 **Status:** CI builds the `.ipa` and checks that it contains an arm64 iPhone
-executable. I have not yet sideloaded it onto a physical iPhone and run it. Reports
+executable. I sideloaded it with a free Apple ID onto an iPhone running iOS 27.0.1
+and drove Assetto Corsa with it. Reports from other iPhone models and iOS versions
 are welcome in [GitHub Issues](https://github.com/DEZ-byte/SteeringControl/issues).
 
 ### 1. Download the `.ipa`
@@ -262,7 +266,7 @@ Turn on **Show diagnostics** on the connect screen. The diagnostics line shows:
 
 | Field | Measures | Expected |
 |---|---|---|
-| `Hz`, `ia` | motion delivery rate and the interval between sends | p50 within 4% of 1/R, p99 ≤ 10 ms, max ≤ 20 ms, where R is 120 Hz or the phone's maximum |
+| `Hz`, `ia` | motion delivery rate and the interval between sends | p50 within 4% of 1/R, p99 within 2 ms of 1/R, max ≤ 20 ms, where R is the rate the phone delivers (100 Hz on the iPhone tested) |
 | `disp` | display link frame interval | 8.0 to 8.7 ms on a 120 Hz ProMotion screen |
 
 Packet rate, loss and jitter as seen by the PC are in the daemon's `--stats-json 1`
@@ -270,8 +274,18 @@ output: expect R ± 2 packets per second, under 0.1% drops and an inter-arrival 
 under 12 ms. Display hitches are measured with Instruments (Animation Hitches): under
 5 ms per second, and no hang over 250 ms.
 
-A phone that delivers device motion at 100 Hz instead of 120 Hz is acceptable; the
-diagnostics line shows which one you have.
+On the first real drive, the median rate of 100 packets per second and the loss of
+0.045% met these figures, although 28 of the 399 full one-second windows fell outside
+R ± 2 during Wi-Fi gaps. The inter-arrival p99 did not meet its figure. It was about
+24 ms in a typical second, because Wi-Fi delivered the packets in bunches; the
+daemon's burst drain uses the newest packet of each bunch.
+
+The app asks Core Motion for an update every 1/120 s
+(`deviceMotionUpdateInterval = 1.0 / configuration.updateHz`, with `updateHz` set to
+120). That is a request, not a promise: when
+it is faster than the hardware allows, iOS delivers at the hardware's maximum
+instead. On the iPhone tested that was 100 Hz, one sample every 10 ms, so the phone
+sends 100 packets a second. The diagnostics line shows the rate your phone delivers.
 
 ## Troubleshooting
 
@@ -298,8 +312,8 @@ throws if it is given the main queue.
 
 **The screen reads the steering; the steering never pushes to the screen.** The wheel
 graphic reads the latest snapshot from its own display link and sets one layer
-transform. Nothing at 120 Hz goes through an observable object. Text readouts update
-at 15 Hz.
+transform. Nothing at sensor or display rate goes through an observable object. Text
+readouts update at 15 Hz.
 
 **Shaping happens once, on the phone.** Degrees of rotation, deadband and gamma are
 applied here. The daemon has no shaper, so the game receives exactly what the phone
@@ -313,7 +327,7 @@ and its status line keeps reading "Streaming to".
 
 ## Not done yet
 
-- The app has not been run on a physical iPhone, so the on-device checks above have
-  not been done.
+- Only the PC side of the first real drive was logged. The on-phone checks above,
+  the diagnostics line and the Instruments hitch check, have not been recorded yet.
 - There is no discovery. The PC's address is typed once and remembered.
 - The optional sub-bass audio effect is not implemented.

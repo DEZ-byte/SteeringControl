@@ -7,7 +7,7 @@
 > 
 > ⚙️ Skip to **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the byte-level wire protocol, quaternion twist-swing derivations, lock-free seqlock memory ordering, and latency histograms.
 
-Turn an iPhone into a free, low-latency 120 Hz steering wheel for PC sim racing. The PC sees a virtual Xbox 360 controller, and Assetto Corsa's telemetry comes back to the phone as haptic feedback. Setup guides cover Assetto Corsa, BeamNG.drive and Forza Horizon 4 and 5.
+Turn an iPhone into a free, low-latency 100 Hz steering wheel for PC sim racing. The PC sees a virtual Xbox 360 controller, and Assetto Corsa's telemetry comes back to the phone as haptic feedback. Setup guides cover Assetto Corsa, BeamNG.drive and Forza Horizon 4 and 5.
 
 <!--Uncomment once recorded: ![OpenSteer Cardboard Wheel Demo](docs/media/demo.gif) -->
 
@@ -27,7 +27,7 @@ So I decided to build my own from scratch to fix all of that.
 
 ## How It Works
 
-OpenSteer splits the work into two streams. A **120 Hz control uplink** carries your steering and pedals from the phone to the PC. A **60 Hz haptic downlink** carries the car's engine speed, tire slip, ABS and traction control back to the phone, which you feel as vibration.
+OpenSteer splits the work into two streams. A **100 Hz control uplink** carries your steering and pedals from the phone to the PC. A **60 Hz haptic downlink** carries the car's engine speed, tire slip, ABS and traction control back to the phone, which you feel as vibration.
 
 ```mermaid
 flowchart LR
@@ -41,7 +41,7 @@ flowchart LR
         shm[("Assetto Corsa<br/>shared memory<br/>Local\acpmf_physics")] -- "seqlock-style read" --> daemonOut["Windows daemon<br/>OpenSteer.Server"]
         daemonOut -- "16 B UDP packet" --> phoneOut["iPhone<br/>CoreHaptics<br/>RPM, slip, ABS, TC"]
     end
-    subgraph uplink["120 Hz control uplink"]
+    subgraph uplink["100 Hz control uplink"]
         direction LR
         phoneIn["iPhone<br/>CoreMotion twist-swing,<br/>thumb pedals, paddles"] -- "32 B UDP packet" --> daemonIn["Windows daemon<br/>OpenSteer.Server<br/>validate, lease, watchdog"]
         daemonIn -- "ViGEmClient.dll" --> vigem["ViGEmBus<br/>virtual Xbox 360 pad"]
@@ -54,12 +54,12 @@ The same system by component:
 ```text
   ┌─────────────────────────────────────────────────────────────────────────┐
   │                        iPhone Client (client-ios)                       │
-  │  • CMMotionManager @ 120 Hz (.xArbitraryZVertical)                      │
+  │  • CMMotionManager @ 100 Hz (.xArbitraryZVertical)                      │
   │  • Quaternion twist-swing decomposition around screen normal (Z)        │
   │  • Floating-anchor thumb pedals + tap shift paddles                     │
   │  • CoreHaptics driven by the 60 Hz downlink (RPM, slip, ABS, TC)        │
   └───────────────────┬─────────────────────────────────────▲───────────────┘
-                      │ 32-byte UDP Uplink (120 Hz)         │ 16-byte UDP Downlink (60 Hz)
+                      │ 32-byte UDP Uplink (100 Hz)         │ 16-byte UDP Downlink (60 Hz)
                       │ Magic 0x4F535452 + XXH32            │ Magic 0x46464231, no checksum
                       ▼                                     │
   ┌─────────────────────────────────────────────────────────┴───────────────┐
@@ -77,12 +77,12 @@ The same system by component:
   └─────────────────────────────────────────────────────────────────────────┘
 
   Optional Driverless Path (bridge-esp32, no downlink, no telemetry haptics):
-  [iPhone 120 Hz UDP] ──► [ESP32-S3 Wi-Fi SoftAP (192.168.4.1:9999)] ──► [PC USB-HID Joystick]
+  [iPhone 100 Hz UDP] ──► [ESP32-S3 Wi-Fi SoftAP (192.168.4.1:9999)] ──► [PC USB-HID Joystick]
 ```
 
 > **Optional ESP32-S3 bridge:** the phone joins the bridge's own Wi-Fi network and sends the same 32-byte uplink to `192.168.4.1:9999`. The bridge shows up on the PC as a plain USB HID joystick, so the PC needs no driver and no software. The bridge has no telemetry, so that path has no downlink: no engine rumble and no ABS or TC ticks. The haptics that come from your own inputs, the shift click and the brake lockup thud, still play.
 
-Target end-to-end LAN latency is **under 3 ms**. That is a design budget, not yet measured with a phone. With the daemon started with `--echo-rtt` and `--mode none` (no controller output), a Python mock phone on the same Windows PC measured an uplink-to-downlink loopback round trip of **173 µs** median and **517 µs** p99. Full architecture details, quaternion derivations, and benchmark tables are in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+Target end-to-end LAN latency is **under 3 ms**. That is a design budget: the full path from the phone's sensor to the controller has not been timed. On a real drive, the PC's part of it, from receiving a packet to updating the controller, had a p99 of **0.25 ms** in a typical second ([Measured on Track](#measured-on-track)). With the daemon started with `--echo-rtt` and `--mode none` (no controller output), a Python mock phone on the same Windows PC measured an uplink-to-downlink loopback round trip of **173 µs** median and **517 µs** p99. Full architecture details, quaternion derivations, and benchmark tables are in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
 ---
 
@@ -99,7 +99,7 @@ You need a Windows PC and an iPhone on the same Wi-Fi network. You do not need a
 4. **Install the app.** Download **[`OpenSteer-unsigned.ipa`](https://github.com/DEZ-byte/SteeringControl/releases/latest/download/OpenSteer-unsigned.ipa)** from the same release and sideload it from Windows with your own Apple ID: **[Installing on an iPhone Without a Mac](client-ios/README.md#installing-on-an-iphone-without-a-mac-sideloading-ipa-on-windows)**.
 5. **Drive.** Open the app, type the PC's address, tap **Drive** and allow local network access. Hold the phone like a wheel, press **CENTER**, and set up your game: [Assetto Corsa](docs/sim-presets/assetto-corsa.md), [BeamNG.drive](docs/sim-presets/beamng-drive.md) or [Forza Horizon 4 and 5](docs/sim-presets/forza-horizon.md).
 
-Neither download is code-signed. Windows SmartScreen can warn before the daemon's first start, and the `.ipa` installs only after the sideloading tool signs it. CI builds and checks the `.ipa`, but I have not yet installed it on a physical iPhone. Release downloads need no GitHub account and do not expire.
+Neither download is code-signed. Windows SmartScreen can warn before the daemon's first start, and the `.ipa` installs only after the sideloading tool signs it. CI builds and checks the `.ipa`, and I have sideloaded it with a free Apple ID onto a physical iPhone (iOS 27.0.1) and driven Assetto Corsa with it. Release downloads need no GitHub account and do not expire.
 
 ---
 
@@ -111,11 +111,32 @@ Every component builds and passes its automated test suite in CI across Windows,
 |---|---|
 | **`OpenSteer.Core`** — wire codecs, XXH32, validator, watchdog, axis math, lease & `--allow` logic | Working (`79` xUnit tests passing) |
 | **`tools/`** — Python reference codecs, twist math, golden vector generator, mock phone, probes | Working (`41` unittest tests passing) |
-| **`OpenSteer.Server`** — UDP hot loop, Win32 high-res timers, ViGEm output | Verified on Windows with Assetto Corsa and loopback harness; CI publishes it, and the [latest release](https://github.com/DEZ-byte/SteeringControl/releases/latest) has it as `OpenSteer-Server-win-x64.zip` |
-| **Telemetry & 60 Hz FFB Downlink** — lock-free shared-memory reader (`AcSharedMemoryReader`) | Verified against a mock physics page; Assetto Corsa's live physics page confirmed with `tools/ac_shm_peek.py`; not yet received by a phone |
-| **`client-ios`** — SwiftUI app & `OpenSteerCore` Swift package | Builds and passes XCTest suite in CI (macOS / iOS Simulator); CI also builds the unsigned arm64 `OpenSteer-unsigned.ipa`, which the [latest release](https://github.com/DEZ-byte/SteeringControl/releases/latest) has as a download; not yet run on a physical iPhone |
+| **`OpenSteer.Server`** — UDP hot loop, Win32 high-res timers, ViGEm output | Verified on Windows with Assetto Corsa, a physical iPhone and the loopback harness; CI publishes it, and the [latest release](https://github.com/DEZ-byte/SteeringControl/releases/latest) has it as `OpenSteer-Server-win-x64.zip` |
+| **Telemetry & 60 Hz FFB Downlink** — lock-free shared-memory reader (`AcSharedMemoryReader`) | Verified end-to-end on a physical iPhone driving Assetto Corsa over Wi-Fi; the daemon sent 60 frames per second ([Measured on Track](#measured-on-track)); also verified against a mock physics page, and Assetto Corsa's live physics page confirmed with `tools/ac_shm_peek.py` |
+| **`client-ios`** — SwiftUI app & `OpenSteerCore` Swift package | Verified end-to-end on a physical iPhone (iOS 27.0.1) driving Assetto Corsa over Wi-Fi. Builds and passes XCTest suite in CI (macOS / iOS Simulator); CI also builds the arm64 `OpenSteer-unsigned.ipa`, which the [latest release](https://github.com/DEZ-byte/SteeringControl/releases/latest) has as a download. The `.ipa` is unsigned: sideload it with a free Apple ID |
 | **`bridge-esp32`** — optional ESP32-S3 Wi-Fi SoftAP to USB-HID bridge | Builds in CI (`dev` & `release` environments) and passes C++ host tests; not yet flashed to a board |
 | **`third_party/vigem/ViGEmClient.dll`** — native x64 ViGEm client | Committed and SHA-256 verified at build time (`VerifyViGEmClientHash`) |
+
+---
+
+## Measured on Track
+
+On 2026-10-23 I drove Assetto Corsa with the app on a physical iPhone (iOS 27.0.1), over home Wi-Fi to the daemon on a Windows PC with the real ViGEm driver. The daemon logged one stats line per second. The phone was connected for 6 min 39 s, about 5 minutes of it on track.
+
+| Measure | Result |
+|---|---|
+| Packets received | **39,941**, at **100** per second |
+| Packets lost | **18** (**0.045%**) |
+| Corrupted, duplicate or out-of-order packets | **0** |
+| PC receive-to-controller time, p99 per second, on track | **0.25 ms** typical, **0.65 ms** worst |
+| Gen-0 garbage collections | **0** for the whole session |
+| Haptic downlink, sent by the PC | **60** frames per second |
+| Packet spacing, p99 per second | about **24 ms** typical, because Wi-Fi delivers in bunches |
+| Wi-Fi gaps that tripped the 100 ms watchdog timeout | **22**, median **107 ms** |
+
+The burst drain and the watchdog handled the Wi-Fi. When packets arrived in a bunch, the daemon used the newest and skipped the rest, 1,348 packets in all, so the wheel never replayed old motion. In 21 of the 22 gaps the link came back before the 250 ms fail-safe: the wheel held its angle, the pedals began to ease off once the gap passed 100 ms, and control resumed with the next packet. The longest gap, 273 ms, passed that limit. The watchdog centered the wheel and coasted, then blended the steering back in over 300 ms. Seventeen of the gaps started on an exact 5-second grid, fifteen of them on a 10-second beat. Neither the daemon nor the app runs anything on a 5- or 10-second period, so the likely source is the Wi-Fi link; it has not been traced.
+
+The iPhone sends 100 packets a second, not 120. The app asks Core Motion for 120 updates a second, and iOS delivers at the hardware's maximum instead, which on this iPhone is 100. Full figures and targets are in [docs/ARCHITECTURE.md § 8](docs/ARCHITECTURE.md#8-measured-performance).
 
 ---
 
@@ -170,7 +191,7 @@ Four rules shape the code. Rules 1 and 4 are pinned by regression tests; rules 2
 
 | New memory for every packet | Allocate once, reuse forever |
 |---|---|
-| Garbage piles up at 120 packets a second | Nothing new is created per packet |
+| Garbage piles up at 100 packets a second | Nothing new is created per packet |
 | The runtime pauses the thread to collect it | No per-packet garbage; 0 collections measured |
 
 <details>
@@ -212,7 +233,7 @@ Four rules shape the code. Rules 1 and 4 are pinned by regression tests; rules 2
 
 ## Wire Protocol at a Glance
 
-* **Uplink, phone → PC:** 32 bytes at 120 Hz: magic `0x4F535452`, sequence, steering, three pedals, a 16-bit zero padding field, buttons, timestamp, and an XXH32 checksum seeded with `0x4F535401`.
+* **Uplink, phone → PC:** 32 bytes at 100 Hz: magic `0x4F535452`, sequence, steering, three pedals, a 16-bit zero padding field, buttons, timestamp, and an XXH32 checksum seeded with `0x4F535401`.
 * **Downlink, PC → phone:** 16 bytes at 60 Hz: magic `0x46464231`, RPM, ABS, TC, tire slip, and a 32-bit reserved field. No checksum and no sequence number: a lost frame is simply replaced by the next one.
 * **Validation:** the PC checks length, magic, checksum and zeroed padding, in that order, then the sender's address (with `--allow`), the lease and the sequence number. The phone checks the downlink's length and magic and cleans up the slip value.
 * **Encoding:** every field is little-endian and packed. Byte offsets, packet diagrams and the checksum's known-answer tests are in **[docs/ARCHITECTURE.md § 2](docs/ARCHITECTURE.md#2-wire-protocol)**.
@@ -345,7 +366,7 @@ It is an experimental concept: I have not built it yet. Help is welcome:
 
 * **Build the rig** and report what worked and what did not, with photos.
 * **Contribute templates:** cardboard cut sheets, laser-cut files, or 3D-printable STL parts.
-* **Test sideloading** the CI-built `.ipa` on a real iPhone, and report the iOS version and the tool you used.
+* **Test sideloading** the CI-built `.ipa` on other iPhone models and iOS versions, and report the model, the iOS version and the tool you used.
 
 Report results and bugs in [GitHub Issues](https://github.com/DEZ-byte/SteeringControl/issues), or open a pull request.
 

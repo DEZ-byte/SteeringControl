@@ -59,10 +59,11 @@ setup, each page says so.
 ## Status
 
 These are starting points written from the games' documented settings, not
-measured results. The presets have been tested with the keyboard and loopback
-tools, not with a phone: the iOS app builds and passes its tests in CI but has not
-yet run on a physical iPhone. Treat the numbers as a reasonable first setup and
-expect to adjust the phone rotation setting to taste.
+measured results. Assetto Corsa has been driven with a physical iPhone over Wi-Fi
+([measurements](../../README.md#measured-on-track)). The BeamNG.drive and Forza
+Horizon pages have been tested with the keyboard and loopback tools only. Treat the
+numbers as a reasonable first setup and expect to adjust the phone rotation setting
+to taste.
 
 Where a page gives an exact configuration file key, it also gives the menu path
 for the same setting. Use the menu if the two disagree: game updates rename keys,

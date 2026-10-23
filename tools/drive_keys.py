@@ -1,8 +1,8 @@
 """Drive the wheel from the keyboard, for testing the PC half without a phone.
 
-Sends the same 32-byte uplink packets the phone sends, at the same 120 Hz, so the
-daemon cannot tell the difference and the run exercises the real validator, the
-real watchdog and the real virtual controller.
+Sends the same 32-byte uplink packets the phone sends, at 120 Hz by default (a real
+iPhone sends 100), so the daemon handles them exactly like the phone's and the run
+exercises the real validator, the real watchdog and the real virtual controller.
 
     A / D     steer left and right, ramped
     W         throttle

@@ -58,7 +58,9 @@ If the file and the menu disagree, go by the menu.
 There is nothing to enable. Assetto Corsa publishes its physics page
 unconditionally, under the name `Local\acpmf_physics`, and the daemon attaches to
 it on its own. This path has been verified against a mock of that page,
-`tools/inject_ac_shm.py`, but not yet with a phone receiving the haptics.
+`tools/inject_ac_shm.py`, and in a real drive: the daemon sent the iPhone its 60 Hz
+downlink for the whole session, with live physics in it for the roughly 5 minutes on
+track ([measurements](../../README.md#measured-on-track)).
 
 If it seems not to work, check two things.
 
@@ -73,8 +75,8 @@ in-game slider to zero changes nothing on the phone.
 
 ## Testing Assetto Corsa without a phone
 
-`tools/drive_keys.py` sends the same packets the phone sends, at the same rate, so
-the daemon handles them identically. Use it to check the PC side without a phone.
+`tools/drive_keys.py` sends the same packets the phone sends, at 120 Hz where a real
+iPhone sends 100, so the daemon handles them identically. Use it to check the PC side without a phone.
 
 ```bash
 python tools/drive_keys.py

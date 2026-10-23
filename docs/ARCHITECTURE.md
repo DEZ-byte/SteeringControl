@@ -9,7 +9,7 @@ for each part are in its own README.
 
 ## 1. Overview
 
-An iPhone acts as a steering wheel. It reads its own rotation at 120 Hz, turns the
+An iPhone acts as a steering wheel. It reads its own rotation at 100 Hz, turns the
 twist of the phone into a steering value, adds two thumb pedals and two shift paddles,
 and sends a 32-byte UDP packet per sample. A Windows daemon validates each packet and
 feeds a virtual Xbox 360 controller through ViGEmBus, which games see as real
@@ -19,7 +19,7 @@ a 16-byte packet back at 60 Hz, which the phone plays as haptics.
 ```
 iPhone                                         Windows PC
 ------                                         ----------
-CoreMotion, 120 Hz --+
+CoreMotion, 100 Hz --+
 touch pedals --------+--> twist, shaping --> 32 B uplink --UDP 9999--> OpenSteer.Server
 paddles -------------+                                                  |  validate, lease,
                                                                         |  watchdog
@@ -52,8 +52,8 @@ inputs, the shift click, the brake lockup thud and the CENTER pulse, still play.
 
 | Part | State |
 |---|---|
-| Windows daemon and telemetry | verified on real hardware and driven in Assetto Corsa (section 8) |
-| iOS core library and app | build and pass their tests in CI on macOS: `swift test`, and `xcodebuild test` on an iOS simulator. CI also builds the app for a real iPhone (arm64, unsigned) and uploads it as `OpenSteer-unsigned.ipa`. Not yet run on a phone |
+| Windows daemon and telemetry | verified on real hardware and driven in Assetto Corsa, with the keyboard tool and with a physical iPhone over Wi-Fi (section 8) |
+| iOS core library and app | verified end-to-end on a physical iPhone (iOS 27.0.1) driving Assetto Corsa over Wi-Fi, with the 60 Hz downlink reaching the phone; section 8 has the PC-side figures. They build and pass their tests in CI on macOS: `swift test`, and `xcodebuild test` on an iOS simulator. CI also builds the app for a real iPhone (arm64, unsigned) and uploads it as `OpenSteer-unsigned.ipa`; the copy tested was sideloaded with a free Apple ID |
 | ESP32 bridge | both firmware variants build in CI; the checksum and watchdog pass host tests under g++. Not yet flashed |
 
 CI (`.github/workflows/ci.yml`) runs every suite on each push to `main` and on pull
@@ -91,10 +91,10 @@ The end-to-end target is under 3 ms from phone motion to the virtual controller.
 | ViGEm IOCTL | 0.1 to 0.3 ms |
 | **Total** | **1 to 2.7 ms** |
 
-One lost datagram costs 8.33 ms of staleness at 120 Hz. The payload is 3.84 kB/s up
-(120 × 32 B) and 0.96 kB/s down (60 × 16 B). With Ethernet framing (78 and 62 bytes
-per frame) that is about 9.4 kB/s and 3.7 kB/s, roughly 0.1 Mbit/s in total, with
-no fragmentation.
+One lost datagram costs 10 ms of staleness at the 100 Hz a real iPhone delivers. The
+payload is 3.2 kB/s up (100 × 32 B) and 0.96 kB/s down (60 × 16 B). With Ethernet
+framing (78 and 62 bytes per frame) that is about 7.8 kB/s and 3.7 kB/s, roughly
+0.1 Mbit/s in total, with no fragmentation.
 
 ## 2. Wire protocol
 
@@ -379,6 +379,12 @@ take control inputs, twist, unwrap, shape, encode, checksum, send, publish a sna
 The budget is under 2 µs per sample up to the finished packet and 10 to 40 µs for
 the send call. These are design budgets; they have not been measured on a phone.
 
+The interval is a request, not a promise. When it is faster than the hardware
+allows, Core Motion delivers at the hardware's maximum instead. On the iPhone tested
+(iOS 27.0.1) that was 100 Hz: in every second of the drive in section 8, the
+daemon's median inter-arrival was between 9.8 and 10.3 ms. A real phone therefore
+sends 100 packets a second.
+
 The sensor loop never runs on the main queue. SwiftUI shares the main queue with
 layout and gesture handling, so one slow frame would delay a steering packet.
 `MotionEngine`'s initializer throws `PipelineError.mainQueueForbidden` if it is given
@@ -386,8 +392,8 @@ the main queue. `CADisplayLink` is used only to draw: the wheel graphic reads th
 latest snapshot and sets one layer transform per frame, at up to 120 Hz on ProMotion
 (`preferredFrameRateRange` 80 to 120, plus the
 `CADisableMinimumFrameDurationOnPhone` Info.plist key, without which iOS caps the app
-at 60 Hz). Text readouts update at 15 Hz. Nothing at 120 Hz goes through an
-observable object.
+at 60 Hz). Text readouts update at 15 Hz. Nothing at sensor or display rate goes
+through an observable object.
 
 With `.xArbitraryZVertical`, the twist axis is close to horizontal when the screen
 faces the driver, so gravity corrects drift. With the phone flat, yaw drift becomes
@@ -604,7 +610,7 @@ that class and would reject every packet as `other_src`.
 T1 only calls `ReceiveFrom` and T2 only calls `SendTo` on the same socket (with
 `--echo-rtt`, T1 does the sending and T2 sends nothing). One reader and one writer
 on a `Socket` is safe, and the socket is idle well over 99% of the
-time at 120 Hz in and 60 Hz out. A separate send socket was considered and rejected:
+time at 100 Hz in and 60 Hz out. A separate send socket was considered and rejected:
 it would put the reply on a different port, need a listener on the phone, and need a
 second firewall rule. If a race ever appears, the fallback is for T2 to hand its
 16-byte frame to T1, which sends it at the end of its next pass.
@@ -908,6 +914,10 @@ with the Python mock phone on loopback unless stated otherwise.
 Soak: 150 seconds with the real ViGEm driver, 18 001 frames, zero dropped, zero
 malformed, zero socket errors, zero collections.
 
+The mock phone sends at 120 Hz, faster than the 100 Hz a real iPhone delivers, so
+these runs load the daemon more heavily than the phone does. The real phone's
+figures are under [On track with a physical iPhone](#on-track-with-a-physical-iphone).
+
 ### Watchdog and validation
 
 | Check | Result |
@@ -970,6 +980,44 @@ Driven in Assetto Corsa on 2026-09-11 with the keyboard driver tool
 responding. `tools/ac_shm_peek.py` saw the physics page updating at 332 samples per
 second.
 
+### On track with a physical iPhone
+
+Driven in Assetto Corsa on 2026-10-23 with the app on a physical iPhone (iOS 27.0.1,
+the unsigned `.ipa` sideloaded with a free Apple ID), over home Wi-Fi to the Release
+daemon with the real ViGEm driver. The daemon logged one `--stats-json` line per
+second. The phone was connected for 6 min 39 s (400 one-second windows, the last one
+partial), about
+5 minutes of it on track (301 windows with the physics page attached).
+
+| Metric | Measured | Target |
+|---|---|---|
+| Packet rate | 100 per second in the median window; inter-arrival p50 between 9.8 and 10.3 ms in every window | the rate the phone delivers |
+| Packets accepted | 39 941 | |
+| Lost to sequence gaps | 18, 0.045% | under 0.1% |
+| Bad length, magic, checksum or padding | 0 | 0 |
+| Duplicate or stale | 0 | 0 |
+| Other source, socket errors | 0 | 0 |
+| Receive to inject p99, on track | 250 µs in the median window; 650 µs in the worst, over target | under 500 µs |
+| Receive to inject p99, first second of the session | 2250 µs, over target | same as steady state |
+| Inter-arrival p99 | about 24 ms in the median window; at least 51.2 ms (the histogram's ceiling) in the worst | under 12 ms, not met |
+| Coalesced in a burst | 1348 | |
+| Gen-0 garbage collections | 0 | 0 |
+| Downlink rate, sent by the daemon | 60 per second in 388 of 400 windows; 59 to 61 in every window but the last, when the phone disconnected | 58 to 62 |
+
+The uplink went quiet long enough to trip the 100 ms timeout 22 times (median
+107 ms, longest 273 ms; the watchdog noticed each one 100.9 to 105.1 ms in), and once
+more when the phone disconnected at the end. Twenty-one stalls ended inside the
+decay window and went straight back to Live. The 273 ms stall crossed the 250 ms
+limit: FailSafe centered the wheel and released the pedals, and the link came back
+through Recovering and the 300 ms steering slew. Seventeen of the 22 stalls started
+on an exact 5-second grid, fifteen of them on a 10-second beat. Neither the daemon
+nor the app has anything on a 5- or 10-second period, so the likely source is the
+Wi-Fi link, such as power saving or a background scan; it has not been traced. The 1348 coalesced packets are the same bunching seen
+from the other side: the burst drain used the newest packet of each bunch.
+
+The end-to-end time from the phone's sensor to the controller was not measured. The
+phone and the PC share no clock, and this drive did not use `--echo-rtt`.
+
 ## 9. Design invariants
 
 Comments in the code refer to these by number.
@@ -980,7 +1028,7 @@ Comments in the code refer to these by number.
 | I2 | The receive loop blocks in `Socket.Poll`, then drains a burst with zero-timeout polls (at most 64 per pass), keeping only the newest valid packet. No `Available` spin | `UdpHotLoop.cs` | idle CPU and burst drain measurements |
 | I3 | No heap allocation on the daemon's hot thread after startup | `UdpHotLoop.cs`, `LogRing.cs` | `gc0` stays 0 in `STATS` |
 | I4 | Pedals go to XInput as 8-bit (`>> 8`) | `ViGEmX360Sink.cs`, `AxisMath.cs` | `AxisMathTests` |
-| I5 | Motion runs at 120 Hz on a background queue; the UI uses the display link only | `MotionEngine.swift`, `DisplayLinkDriver.swift` | `MotionEngineTests` |
+| I5 | Motion runs on a background queue, requested at 120 Hz and delivered at the hardware's maximum (100 Hz on the iPhone tested); the UI uses the display link only | `MotionEngine.swift`, `DisplayLinkDriver.swift` | `MotionEngineTests` |
 | I6 | Wire format is little-endian, packed, 32 and 16 bytes, IPv4 only | size asserts in every language | known-answer and golden tests in C#, Swift, Python, C++ |
 | I7 | Checksum is XXH32, seed `0x4F535401`, over bytes 0 to 27, stored little-endian at 28 | `Xxh32.cs`, `XXHash32.swift`, `osproto.py`, `checksum.cpp` | KAT-0, KAT-1, KAT-2 in each language |
 | I8 | Watchdog constants 100 ms, τ 30 ms, 250 ms, steering slew 300 ms, pedal slew 100 ms; fail-safe brake 0; only T1 writes the output | `Watchdog.cs`, `watchdog.cpp` | `WatchdogTests`, `test_pure.cpp`, `test_bridge_logic.py` |
