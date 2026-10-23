@@ -64,10 +64,10 @@ You need a Windows PC and an iPhone on the same Wi-Fi network. You do not need a
    ```powershell
    .\OpenSteer.Server.exe --allow <phone-ip>
    ```
-4. **Install the app.** Download **[`OpenSteer-unsigned.ipa`](https://github.com/DEZ-byte/SteeringControl/releases/latest/download/OpenSteer-unsigned.ipa)** from the same release and sideload it from Windows with your own Apple ID: **[Installing on an iPhone Without a Mac](client-ios/README.md#installing-on-an-iphone-without-a-mac-sideloading-ipa-on-windows)**.
+4. **Install the app.** Download **[`OpenSteer-unsigned.ipa`](https://github.com/DEZ-byte/SteeringControl/releases/latest/download/OpenSteer-unsigned.ipa)** from the same release and sideload it from Windows with [iloader](https://github.com/nab138/iloader) and your own Apple ID. In October 2026 iloader worked and Sideloadly failed with error -80046. Steps: **[Installing on an iPhone Without a Mac](client-ios/README.md#installing-on-an-iphone-without-a-mac-sideloading-ipa-on-windows)**.
 5. **Drive.** Open the app, type the PC's address, tap **Drive** and allow local network access. Hold the phone like a wheel, press **CENTER**, and set up your game: [Assetto Corsa](docs/sim-presets/assetto-corsa.md), [BeamNG.drive](docs/sim-presets/beamng-drive.md) or [Forza Horizon 4 and 5](docs/sim-presets/forza-horizon.md).
 
-Neither download is code-signed. Windows SmartScreen can warn before the daemon's first start, and the `.ipa` installs only after the sideloading tool signs it. CI builds and checks the `.ipa`, and I have sideloaded it with a free Apple ID onto a physical iPhone (iOS 27.0.1) and driven Assetto Corsa with it. Release downloads need no GitHub account and do not expire.
+Neither download is code-signed. Windows SmartScreen can warn before the daemon's first start, and the `.ipa` installs only after the sideloading tool signs it. CI builds and checks the `.ipa`, and I have sideloaded it with iloader and a free Apple ID onto a physical iPhone (iOS 27.0.1) and driven Assetto Corsa with it. Release downloads need no GitHub account and do not expire.
 
 ---
 

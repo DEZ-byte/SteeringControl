@@ -14,7 +14,7 @@ as a download, and you can sideload it from Windows without a Mac (see
 The app has been verified end-to-end on a physical iPhone (iOS 27.0.1), driving
 Assetto Corsa over Wi-Fi with the 60 Hz haptic downlink coming back
 ([measurements](../README.md#measured-on-track)). That copy was the unsigned `.ipa`,
-sideloaded with a free Apple ID.
+sideloaded with iloader and a free Apple ID.
 
 The design is described in [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md): the twist
 math, the wire format, the queues, the link state machine and the haptics policy.
@@ -127,8 +127,8 @@ the signing and the install, so you need neither a Mac nor a paid Apple Develope
 account.
 
 **Status:** CI builds the `.ipa` and checks that it contains an arm64 iPhone
-executable. I sideloaded it with a free Apple ID onto an iPhone running iOS 27.0.1
-and drove Assetto Corsa with it. Reports from other iPhone models and iOS versions
+executable. I sideloaded it with iloader and a free Apple ID onto an iPhone running
+iOS 27.0.1, from Windows 11, and drove Assetto Corsa with it. Reports from other iPhone models and iOS versions
 are welcome in [GitHub Issues](https://github.com/DEZ-byte/SteeringControl/issues).
 
 ### 1. Download the `.ipa`
@@ -157,7 +157,51 @@ These limits are Apple's, not OpenSteer's:
   SideStore each count as one of the three.
 - At most **10** App IDs can be registered in 7 days.
 
-### 3. Option A: Sideloadly
+### 3. Option A: iloader
+
+**This is the tool that worked.** In October 2026, iloader v2.4.0 installed
+`OpenSteer-unsigned.ipa` from Windows 11 with a free Apple ID. Sideloadly failed on
+the same PC (see [Option B](#4-option-b-sideloadly)).
+
+[iloader](https://github.com/nab138/iloader) is a free, open-source app that signs an
+`.ipa` with your Apple ID and installs it over USB.
+
+1. Install iTunes. iloader talks to the phone through the USB driver that comes with
+   iTunes.
+2. Download `iloader-windows-x64.msi` from the
+   [iloader releases](https://github.com/nab138/iloader/releases) and install it. The
+   installer is not code-signed, so Windows SmartScreen can warn before it runs. Its
+   developer names that page and [iloader.app](https://iloader.app) as the only
+   official downloads, so do not get it from anywhere else.
+3. Connect the iPhone by USB, unlock it, and tap **Trust** when it asks.
+4. Open iloader and sign in with your Apple ID.
+5. Click **Import IPA** and pick `OpenSteer-unsigned.ipa`. iloader signs it and
+   installs it on the phone.
+6. Do the iPhone steps in [section 6](#6-on-the-iphone).
+
+**Where the sign-in goes.** Apple's sign-in servers expect extra headers, called
+anisette data, that prove the request comes from Apple's own software. iloader gets
+these headers from an anisette server. Its default server, **Jkcoxson (Mac)**
+(`mac-ani.jkcoxson.com`), is run by a third party, not by Apple, and provides Mac
+anisette headers. That server sees your IP address. Your Apple ID password does not
+go to it: iloader sends the sign-in directly to Apple's `gsa.apple.com`. To use a
+different server, change **Anisette Server** in iloader's settings.
+
+**Refreshing.** iloader does not re-sign the app in the background. Before the 7 days
+run out, connect the phone and install the `.ipa` again with iloader.
+
+### 4. Option B: Sideloadly
+
+**In October 2026 this failed on Windows.** Sideloadly 0.71.1 could not sign in with
+the free Apple ID. In its **Fake Local Anisette** mode, which it uses when the web
+version of iCloud is missing, it stopped with error -22406. When I set it to
+**Local/iTunes** anisette and ran it as administrator, it stopped with error -80046,
+"This action cannot be completed at this time". Other Windows users have reported -80046 since about
+2026-10-21, from Sideloadly
+([issue 24](https://github.com/SideloadlyiOS/Sideloadly-Download/issues/24)) and from
+AltServer ([AltStore issue 1840](https://github.com/altstoreio/AltStore/issues/1840)).
+Apple appears to reject anisette data that does not come from a Mac, so Sideloadly
+may need a fix from its developer. Check for a newer version before you try it.
 
 [Sideloadly](https://sideloadly.io/) is a free Windows app that signs an `.ipa` with
 your Apple ID and installs it.
@@ -169,7 +213,7 @@ your Apple ID and installs it.
 3. Connect the iPhone by USB, unlock it, and tap **Trust** when it asks.
 4. Drag `OpenSteer-unsigned.ipa` onto the Sideloadly window, enter your Apple ID,
    and start the sideload.
-5. Do the iPhone steps in [section 5](#5-on-the-iphone).
+5. Do the iPhone steps in [section 6](#6-on-the-iphone).
 
 **Wi-Fi and automatic refresh.** After the first install over USB, Sideloadly can
 install and refresh over Wi-Fi while the PC and the phone are on the same network.
@@ -180,7 +224,7 @@ refresh is on by default. It works only while the PC is on and the daemon is
 running, and the phone is connected by USB or is on the same Wi-Fi with its screen
 on.
 
-### 4. Option B: AltStore Classic or SideStore
+### 5. Option C: AltStore Classic or SideStore
 
 Both put a small store app on the phone, and you install the `.ipa` from inside it.
 
@@ -190,18 +234,20 @@ Both put a small store app on the phone, and you install the `.ipa` from inside 
   Apple's website) and use it to put AltStore on the phone. Then tap **+** in
   AltStore's **My Apps** and pick `OpenSteer-unsigned.ipa` in the Files app.
   AltStore refreshes its apps over Wi-Fi while AltServer runs on a PC on the same
-  network. AltStore Classic 2.3 needs iOS 17.4 or later.
+  network. AltStore Classic 2.3 needs iOS 17.4 or later. In October 2026, Windows
+  users reported that AltServer 1.8.2 fails with the same -80046 error as Sideloadly.
 - **SideStore** ([install guide](https://docs.sidestore.io/docs/installation/install)).
-  Install it once from Windows with iloader. After that it signs and refreshes apps
-  on the phone itself, through the LocalDevVPN app, without a PC. Install the `.ipa`
-  with **+** in **My Apps**. SideStore changes often, so follow its current guide
+  Install it once from Windows with iloader ([Option A](#3-option-a-iloader)), which
+  has a SideStore installer. After that it signs and refreshes apps on the phone
+  itself, through the LocalDevVPN app, without a PC. Install the `.ipa` with **+** in
+  **My Apps**. SideStore changes often, so follow its current guide
   and release notes.
 
 AltStore PAL is a different product: an official alternative app marketplace in the
 EU, Japan and Brazil. It installs only notarized apps, so it cannot install this
 `.ipa`.
 
-### 5. On the iPhone
+### 6. On the iPhone
 
 1. Turn on **Settings > Privacy & Security > Developer Mode**, then restart the
    phone. iOS 16 and later will not open an app signed with a free Apple ID without
