@@ -7,7 +7,8 @@ its shared memory.
 ## Quick setup
 
 1. Start the OpenSteer daemon. Start Assetto Corsa.
-2. In Content Manager: **Settings, Controls, Input method: Gamepad**.
+2. Open the Controls page: in Content Manager, **Settings > Assetto Corsa > Controls**;
+   in the game's own launcher, **Options > Controls**. Set **Input method** to **Gamepad**.
 3. Assign steering, throttle, brake and the two paddles.
 4. Set gamepad **Steering gamma 1.0**, **filter 0**, **deadzone 0**, **speed sensitivity 0**.
 5. Turn the in-game vibration off. The phone does the haptics.
@@ -17,18 +18,35 @@ its shared memory.
 
 [`assetto-corsa/OpenSteer_Xbox360.ini`](assetto-corsa/OpenSteer_Xbox360.ini)
 
-Copy it to:
+It goes in `Assetto Corsa\cfg\controllers\presets` inside your Documents folder.
+That folder does not exist until the game has been run once. Launch Assetto Corsa,
+let it reach the main menu, quit, and the whole `cfg` tree appears.
 
+Your Documents folder is not always `%USERPROFILE%\Documents`. When OneDrive backs
+it up, which Windows 11 often turns on, it moves to `%USERPROFILE%\OneDrive\Documents`,
+and Assetto Corsa writes its `cfg` tree there. A copy to the other folder shows no
+error, but the preset never appears in the game. In PowerShell, this asks Windows
+where Documents really is:
+
+```powershell
+$presets = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'Assetto Corsa\cfg\controllers\presets'
 ```
-%USERPROFILE%\Documents\Assetto Corsa\cfg\controllers\presets\OpenSteer_Xbox360.ini
+
+Then, in the same window, copy the preset from a clone of this repo:
+
+```powershell
+Copy-Item "$HOME\SteeringControl\docs\sim-presets\assetto-corsa\OpenSteer_Xbox360.ini" (Join-Path $presets 'OpenSteer_Xbox360.ini')
+```
+
+Or download it straight into the folder:
+
+```powershell
+Invoke-WebRequest 'https://raw.githubusercontent.com/DEZ-byte/SteeringControl/main/docs/sim-presets/assetto-corsa/OpenSteer_Xbox360.ini' -UseBasicParsing -OutFile (Join-Path $presets 'OpenSteer_Xbox360.ini')
 ```
 
 Use `presets`, not `savedsets`. Both folders exist, but only `presets` feeds the
 preset list on the Controls page. A file in `savedsets` is ignored without any
 message, which looks the same as a malformed file.
-
-The folder does not exist until the game has been run once. Launch Assetto Corsa,
-let it reach the main menu, quit, and the whole `cfg` tree appears.
 
 Then load **OpenSteer_Xbox360** from the dropdown on the Controls page. This works
 in the stock launcher and in Content Manager; they read the same folder.
