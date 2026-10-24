@@ -153,8 +153,9 @@ These limits are Apple's, not OpenSteer's:
 
 - A free Apple ID's signature lasts **7 days**. After that the app stops opening
   until it is signed and installed again.
-- At most **3** sideloaded apps can be active on a phone at once. AltStore and
-  SideStore each count as one of the three.
+- At most **3** sideloaded apps can be installed on a phone at once, and iloader
+  notes that expired apps still count. AltStore and SideStore each count as one of
+  the three.
 - At most **10** App IDs can be registered in 7 days.
 
 ### 3. Option A: iloader
@@ -166,15 +167,27 @@ the same PC (see [Option B](#4-option-b-sideloadly)).
 [iloader](https://github.com/nab138/iloader) is a free, open-source app that signs an
 `.ipa` with your Apple ID and installs it over USB.
 
-1. Install iTunes. iloader talks to the phone through the USB driver that comes with
-   iTunes.
+> **Credit:** Installing from Windows works thanks to
+> **[iloader](https://github.com/nab138/iloader)** by **[@nab138](https://github.com/nab138)**,
+> built on the [`isideload`](https://github.com/nab138/isideload) and
+> [`idevice`](https://github.com/jkcoxson/idevice) libraries by
+> **[@nab138](https://github.com/nab138)** and **[@jkcoxson](https://github.com/jkcoxson)**.
+> Their open-source work makes free sideloading from Windows to an iPhone possible
+> without a Mac. Thank you.
+
+1. Install iTunes. iloader talks to the phone through the mobile device service that
+   comes with iTunes. The [64-bit iTunes](https://www.apple.com/itunes/download/win64)
+   from Apple's website works, and so do iTunes or the Apple Devices app from the
+   Microsoft Store. iloader does not need iCloud.
 2. Download `iloader-windows-x64.msi` from the
    [iloader releases](https://github.com/nab138/iloader/releases) and install it. The
    installer is not code-signed, so Windows SmartScreen can warn before it runs. Its
    developer names that page and [iloader.app](https://iloader.app) as the only
    official downloads, so do not get it from anywhere else.
 3. Connect the iPhone by USB, unlock it, and tap **Trust** when it asks.
-4. Open iloader and sign in with your Apple ID.
+4. Open iloader, select the iPhone, enter your Apple ID email and password, and click
+   **Login**. When Apple asks, tap **Allow** on the iPhone, type the 6-digit code into
+   iloader's **Two-Factor Authentication** box and click **Submit**.
 5. Click **Import IPA** and pick `OpenSteer-unsigned.ipa`. iloader signs it and
    installs it on the phone.
 6. Do the iPhone steps in [section 6](#6-on-the-iphone).
@@ -183,12 +196,14 @@ the same PC (see [Option B](#4-option-b-sideloadly)).
 anisette data, that prove the request comes from Apple's own software. iloader gets
 these headers from an anisette server. Its default server, **Jkcoxson (Mac)**
 (`mac-ani.jkcoxson.com`), is run by a third party, not by Apple, and provides Mac
-anisette headers. That server sees your IP address. Your Apple ID password does not
-go to it: iloader sends the sign-in directly to Apple's `gsa.apple.com`. To use a
-different server, change **Anisette Server** in iloader's settings.
+anisette headers. That server sees your IP address and a random device ID that iloader
+creates once for your PC, and it learns when you sign in or install. Your Apple ID
+email, password and 2FA code never go to it: iloader signs in directly with Apple's
+`gsa.apple.com`. To use a different server, change **Anisette Server** in iloader's
+settings.
 
 **Refreshing.** iloader does not re-sign the app in the background. Before the 7 days
-run out, connect the phone and install the `.ipa` again with iloader.
+run out, connect the phone and click **Import IPA** again with the same Apple ID.
 
 ### 4. Option B: Sideloadly
 
@@ -249,9 +264,11 @@ EU, Japan and Brazil. It installs only notarized apps, so it cannot install this
 
 ### 6. On the iPhone
 
-1. Turn on **Settings > Privacy & Security > Developer Mode**, then restart the
-   phone. iOS 16 and later will not open an app signed with a free Apple ID without
-   it. The switch may appear only after the first sideloaded install.
+1. Turn on **Settings > Privacy & Security > Developer Mode** and tap **Restart**.
+   After the restart, unlock the phone, confirm the alert (**Enable** on current iOS,
+   **Turn On** on older versions) and enter your passcode. iOS 16 and later will not
+   open an app signed with a free Apple ID without it. The switch may appear only
+   after the first sideloaded install.
 2. If iOS reports an untrusted developer, open **Settings > General > VPN & Device
    Management**, select your Apple ID under **Developer App**, and tap **Trust**.
 3. Open OpenSteer and allow local network access when iOS asks. Then follow

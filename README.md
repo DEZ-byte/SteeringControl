@@ -3,7 +3,7 @@
 [![CI](https://github.com/DEZ-byte/SteeringControl/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/DEZ-byte/SteeringControl/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> 💡 **New here?** Read on for the overview, the data-flow diagram, and quickstart.
+> 💡 **New here?** Read on for the overview, the data-flow diagram, and the [step-by-step setup guide](#how-to-start-step-by-step-setup-guide).
 > 
 > ⚙️ Skip to **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the byte-level wire protocol, quaternion twist-swing derivations, lock-free seqlock memory ordering, and latency histograms.
 
@@ -54,20 +54,126 @@ On a real drive, the PC turned a received packet into a controller update in **0
 
 ---
 
-## Quickstart
+## How to Start (Step-by-Step Setup Guide)
 
-You need a Windows PC and an iPhone on the same Wi-Fi network. You do not need a Mac or a compiler: CI builds both halves, and the [latest release](https://github.com/DEZ-byte/SteeringControl/releases/latest) has them as downloads.
+You need a **Windows 10 or 11 PC** and an **iPhone on iOS 17 or later**, on the same Wi-Fi network. You do not need a Mac or a paid Apple Developer account.
 
-1. **Install the driver.** Install [ViGEmBus v1.22.0](https://github.com/nefarius/ViGEmBus/releases) on the PC. It provides the virtual Xbox 360 controller.
-2. **Get the daemon.** From the [latest release](https://github.com/DEZ-byte/SteeringControl/releases/latest), download **[`OpenSteer-Server-win-x64.zip`](https://github.com/DEZ-byte/SteeringControl/releases/latest/download/OpenSteer-Server-win-x64.zip)**. Unzip it and keep `ViGEmClient.dll` in the same folder as `OpenSteer.Server.exe`. The executable is self-contained, so you do not need to install .NET.
-3. **Start the daemon.** Allow UDP port 9999 through the firewall on your private network (the command is under [Security Model](#security-model)). Then start the daemon with your phone's address, which is under **Settings > Wi-Fi** on the iPhone, behind the info button next to your network:
+There are two ways to get the PC side. The **release files** are the quickest: CI builds them, and they need no compiler. **Building from source** runs the same daemon from a clone of this repo. Both use the same iPhone app from the release.
+
+### Step 1: Install the required Windows drivers and tools (one time)
+
+Open **PowerShell as Administrator** and install the virtual Xbox 360 controller driver, [ViGEmBus v1.22.0](https://github.com/nefarius/ViGEmBus/releases/tag/v1.22.0):
+
+```powershell
+winget install --id ViGEm.ViGEmBus --exact
+
+# Only needed to build from source (Option B in Step 2):
+winget install --id Microsoft.DotNet.SDK.8 --exact
+```
+
+The daemon in the release is self-contained, so it runs without .NET installed. The first time you run `winget`, it can ask you to accept its source agreements. When the installs finish, close PowerShell: a window that was already open does not find newly installed commands such as `dotnet`.
+
+The iPhone install in Step 3 talks to the phone through Apple's mobile device service, which comes with iTunes. Install the **[64-bit iTunes for Windows](https://www.apple.com/itunes/download/win64)** from Apple's website, then restart the PC once. You do not need to sign in to iTunes, and iloader does not need iCloud. If you already have iTunes or the **Apple Devices** app from the Microsoft Store, iloader works with those too.
+
+### Step 2: Get OpenSteer and set up Windows
+
+**Option A, the release files.** Download **[`OpenSteer-Server-win-x64.zip`](https://github.com/DEZ-byte/SteeringControl/releases/latest/download/OpenSteer-Server-win-x64.zip)** from the [latest release](https://github.com/DEZ-byte/SteeringControl/releases/latest). In your Downloads folder, right-click it and choose **Extract All**. That makes the folder `Downloads\OpenSteer-Server-win-x64`, with `OpenSteer.Server.exe` and `ViGEmClient.dll` side by side. Keep them together.
+
+**Option B, from source.** Open a normal PowerShell window, not an Administrator one. If you do not have Git, run `winget install --id Git.Git --exact`, then close the window and open a new one. Then clone the repo into your user folder:
+
+```powershell
+cd $HOME
+git clone https://github.com/DEZ-byte/SteeringControl.git
+```
+
+That makes the folder `$HOME\SteeringControl`.
+
+**For Assetto Corsa**, put the OpenSteer controller preset into the game's presets folder. Run Assetto Corsa once first, so that its `cfg` folder exists. Then, in a normal PowerShell window, find that folder. This asks Windows where your Documents folder is, so it also works when OneDrive has moved it:
+
+```powershell
+$presets = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'Assetto Corsa\cfg\controllers\presets'
+New-Item -ItemType Directory -Force $presets | Out-Null
+```
+
+In the same window, with Option A, download the preset into it:
+
+```powershell
+Invoke-WebRequest 'https://raw.githubusercontent.com/DEZ-byte/SteeringControl/main/docs/sim-presets/assetto-corsa/OpenSteer_Xbox360.ini' -UseBasicParsing -OutFile (Join-Path $presets 'OpenSteer_Xbox360.ini')
+```
+
+Or, with Option B, copy it from your clone:
+
+```powershell
+Copy-Item "$HOME\SteeringControl\docs\sim-presets\assetto-corsa\OpenSteer_Xbox360.ini" $presets
+```
+
+**Set up the network.** Open **PowerShell as Administrator**. Run `Get-NetConnectionProfile` first: it shows your adapter's name under `InterfaceAlias` and the network's category. The commands below use `'Wi-Fi'`. If your adapter has another name, such as `Wi-Fi 2` or `WLAN`, or `Ethernet` on a desktop PC cabled to the router whose Wi-Fi the phone uses, use that name instead. Mark the network `Private` only if it is your own home network:
+
+```powershell
+# 1. Mark your home Wi-Fi as a Private network
+Set-NetConnectionProfile -InterfaceAlias 'Wi-Fi' -NetworkCategory Private
+
+# 2. Allow UDP port 9999 in, from your local network only, on the Private profile only
+New-NetFirewallRule -DisplayName 'OpenSteer UDP 9999' -Direction Inbound -Protocol UDP -LocalPort 9999 -RemoteAddress LocalSubnet -Action Allow -Profile Private
+
+# 3. Show the PC's IPv4 address, which you type into the iPhone app
+Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias 'Wi-Fi' | Select-Object -ExpandProperty IPAddress
+```
+
+Write down the address that the last command shows, such as `192.168.1.10`. Some routers use `10.x.x.x` or `172.16.x.x` to `172.31.x.x` instead; any of these is right. The firewall rule covers the Private profile only, so it does nothing while the network is still `Public`.
+
+Also write down the **iPhone's** IPv4 address. On the iPhone, open **Settings > Wi-Fi**, tap the **(i)** next to your network, and read **IP Address** under **IPv4 Address**. Do not use **Private Wi-Fi Address** on the same screen: that is a hardware address, not an IP address. You give the IP address to the daemon in Step 4.
+
+### Step 3: Install the iPhone app with iloader
+
+On Android, an app from outside the store comes as an `.apk` file. The iPhone's equivalent is an **`.ipa`**. OpenSteer's `.ipa` is unsigned, and a free Apple ID signs it for your own phone.
+
+> **Credit:** Installing from Windows works thanks to **[iloader](https://github.com/nab138/iloader)** by **[@nab138](https://github.com/nab138)**, built on the [`isideload`](https://github.com/nab138/isideload) and [`idevice`](https://github.com/jkcoxson/idevice) libraries by **[@nab138](https://github.com/nab138)** and **[@jkcoxson](https://github.com/jkcoxson)**. Their open-source work makes free sideloading from Windows to an iPhone possible without a Mac. Thank you.
+
+1. Download **[`OpenSteer-unsigned.ipa`](https://github.com/DEZ-byte/SteeringControl/releases/latest/download/OpenSteer-unsigned.ipa)** from the [latest release](https://github.com/DEZ-byte/SteeringControl/releases/latest).
+2. Download **`iloader-windows-x64.msi`** from the [iloader releases page](https://github.com/nab138/iloader/releases/latest) and install it. The installer is not code-signed, so Windows SmartScreen can warn before it runs. Get iloader only from that page or [iloader.app](https://iloader.app).
+3. Connect the iPhone with a USB cable, unlock it, tap **Trust** and enter your passcode.
+4. Open iloader and select your iPhone. In iloader's settings, leave **Anisette Server** at its default, **Jkcoxson (Mac)**.
+5. Enter your Apple ID email and password and click **Login**. When Apple asks, tap **Allow** on the iPhone, then type the 6-digit code it shows into iloader's **Two-Factor Authentication** box and click **Submit**.
+6. Click **Import IPA** and pick `OpenSteer-unsigned.ipa`. iloader signs the app and installs it on the phone.
+7. On the iPhone, open **Settings > Privacy & Security**, turn on **Developer Mode** and tap **Restart**. After the restart, unlock the phone, confirm the alert (**Enable** on current iOS, **Turn On** on older versions) and enter your passcode. The switch may appear only after the first sideloaded install.
+8. If iOS says the developer is untrusted, open **Settings > General > VPN & Device Management**, tap your Apple ID under **Developer App**, and tap **Trust**. The phone must be online for this.
+
+**About the anisette server.** Apple's sign-in servers expect extra headers, called anisette data, that prove a request comes from Apple software. **Jkcoxson (Mac)** is a third-party server, not Apple's, that supplies Mac anisette headers. It sees your IP address and a random device ID that iloader creates once for your PC, and it learns when you sign in or install. Your Apple ID email, password and 2FA code never go to it: iloader signs in directly with Apple's `gsa.apple.com`.
+
+**Free Apple ID limits.** The app works for **7 days**. iloader does not refresh it in the background, so before the 7 days run out, connect the phone and click **Import IPA** again. At most **3** sideloaded apps can be installed at once, and iloader notes that expired apps still count. Other tools, and what to do when one fails, are in **[Installing on an iPhone Without a Mac](client-ios/README.md#installing-on-an-iphone-without-a-mac-sideloading-ipa-on-windows)**.
+
+### Step 4: Start the daemon, connect and drive
+
+1. **Start the daemon** in a new, normal PowerShell window. In the commands below, replace `<phone-ip>`, angle brackets included, with the iPhone's address from Step 2, so that the command ends with `--allow`, a space and the address. `--allow` makes the daemon accept packets from your phone only.
+
+   With the release files (Option A):
    ```powershell
+   cd "$HOME\Downloads\OpenSteer-Server-win-x64"
    .\OpenSteer.Server.exe --allow <phone-ip>
    ```
-4. **Install the app.** Download **[`OpenSteer-unsigned.ipa`](https://github.com/DEZ-byte/SteeringControl/releases/latest/download/OpenSteer-unsigned.ipa)** from the same release and sideload it from Windows with [iloader](https://github.com/nab138/iloader) and your own Apple ID. In October 2026 iloader worked and Sideloadly failed with error -80046. Steps: **[Installing on an iPhone Without a Mac](client-ios/README.md#installing-on-an-iphone-without-a-mac-sideloading-ipa-on-windows)**.
-5. **Drive.** Open the app, type the PC's address, tap **Drive** and allow local network access. Hold the phone like a wheel, press **CENTER**, and set up your game: [Assetto Corsa](docs/sim-presets/assetto-corsa.md), [BeamNG.drive](docs/sim-presets/beamng-drive.md) or [Forza Horizon 4 and 5](docs/sim-presets/forza-horizon.md).
+   From source (Option B):
+   ```powershell
+   cd "$HOME\SteeringControl"
+   dotnet run --project server-windows/OpenSteer.Server -c Release -- --mode a --allow <phone-ip>
+   ```
+   The daemon prints `output: ViGEm Xbox 360` and `UDP 0.0.0.0:9999 listening`, then one status line every second. Windows SmartScreen can warn before the release `.exe` first starts, because it is not code-signed. If Windows Defender Firewall asks about `OpenSteer.Server.exe`, tick **Private networks** only and click **Allow access**. Do not click **Cancel**: Windows then adds block rules for the program that override the port rule from Step 2, and the phone cannot connect. If that happened, delete the `OpenSteer.Server.exe` block rules under **Windows Defender Firewall > Advanced settings > Inbound Rules**.
+2. **Connect the iPhone.** Put the phone on the same Wi-Fi as the PC. Open **OpenSteer**, type the PC's address under **Address**, leave **Port** at `9999`, and tap **Drive**. Tap **Allow** when iOS asks for local network access. The daemon's status line then shows `state=Live`, and `pps` close to `100`, the rate the tested iPhone sends.
+   - If you tapped **Don't Allow**, the app stays at "Waiting". Turn OpenSteer on under **Settings > Privacy & Security > Local Network**.
+   - If the status line stays at `state=Idle` and `pps=0`, check the PC address typed in the app, and that the network is Private (Step 2).
+   - If `other_src` counts up, the phone's address is not the one after `--allow`. A router can hand out a new address on another day, so check it again under **Settings > Wi-Fi** and restart the daemon with it.
+3. **Set up Assetto Corsa** (one time). In Content Manager, open **Settings > Assetto Corsa > Controls**; in the game's own launcher, open **Options > Controls**. Set **Input method** to **Gamepad**, load **OpenSteer_Xbox360** from the preset list, and save. If the car ignores the phone later, check that the input method still says Gamepad. Full settings: [Assetto Corsa guide](docs/sim-presets/assetto-corsa.md).
+4. **Drive.** Load a track. Once the car is on track, the daemon reads Assetto Corsa's physics from shared memory, and the phone plays the engine speed, tire slip, ABS and traction control as vibration.
+   - **CENTER:** hold the phone like a wheel, pointing straight ahead, and tap **CENTER**.
+   - **Steer:** turn the phone like a steering wheel.
+   - **Brake and throttle:** the left quarter of the screen is the brake and the right quarter is the throttle. Put your thumb anywhere in it and **slide up** to apply. Slide back down to ease off, or lift your thumb to let go at once. Start each press a little above the bottom edge: on a Face ID iPhone, two quick swipes up from that edge can leave the app.
+   - **Shift:** tap **DOWN** or **UP**, either side of the RPM bar at the top.
+   - **Handbrake:** hold **HOLD** in the bottom row. It lets go when you lift your finger.
+   - **STOP** ends the session.
 
-Neither download is code-signed. Windows SmartScreen can warn before the daemon's first start, and the `.ipa` installs only after the sideloading tool signs it. CI builds and checks the `.ipa`, and I have sideloaded it with iloader and a free Apple ID onto a physical iPhone (iOS 27.0.1) and driven Assetto Corsa with it. Release downloads need no GitHub account and do not expire.
+Other games: [BeamNG.drive](docs/sim-presets/beamng-drive.md) and [Forza Horizon 4 and 5](docs/sim-presets/forza-horizon.md).
+
+The release files and iloader's installer are not code-signed, and the `.ipa` installs only after iloader signs it. CI builds and checks the `.ipa`, and I have sideloaded it with iloader and a free Apple ID onto a physical iPhone (iOS 27.0.1) and driven Assetto Corsa with it. Release downloads need no GitHub account and do not expire.
 
 ---
 
